@@ -8,18 +8,22 @@ class DataSystem:
 
     settings = None
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+            cls._instance._initialized = False
         return cls._instance
 
     def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
         self.load_settings_data()
 
     def load(self, filename: str) -> np.ndarray | None:
         full_path = self._path + filename
         try:
-            data = np.load(full_path)
+            data = np.load(full_path, allow_pickle=True)
             return data
         except FileNotFoundError:
             return None
@@ -42,7 +46,7 @@ class DataSystem:
 
     def save_settings_data(self, value: dict) -> bool:
         # Check we have all the parameters
-        if 'samples' not in value or 'movement_time' not in value or 'wait_record_time' not in value:
+        if 'records' not in value or 'movement_duration' not in value or 'waiting_time_before_recording' not in value:
             return False
 
         # Update local value
@@ -55,5 +59,6 @@ class DataSystem:
         return True
 
     @staticmethod
-    def create_settings_dict(samples: int, movement_time: int, wait_record_time: int):
-        return {'samples': samples, 'movement_time': movement_time, 'wait_record_time': wait_record_time}
+    def create_settings_dict(records: int, movement_duration: int, waiting_time_before_recording: int):
+        return {'records': records, 'movement_duration': movement_duration,
+                'waiting_time_before_recording': waiting_time_before_recording}

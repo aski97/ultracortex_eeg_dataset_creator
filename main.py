@@ -20,7 +20,7 @@ class UEDatasetCreator:
         self.data_system = DataSystem()
 
         # validations commands
-        validate_client_id_cmd = root.register(self.validate_client_id_input)
+        self.validate_positive_integer_entry_cmd = root.register(self.validate_client_id_input)
 
         # icons definition
         self.conf_session_icon = tk.PhotoImage(file="assets/img/settings.png")
@@ -31,11 +31,11 @@ class UEDatasetCreator:
 
         self.top_frame = tk.Frame(root)
         self.c_id_label = tk.Label(self.top_frame, text="Client ID:")
-        self.client_id_entry = tk.Entry(self.top_frame, validate="key", validatecommand=(validate_client_id_cmd, "%P"))
+        self.client_id_entry = tk.Entry(self.top_frame, validate="key", validatecommand=(self.validate_positive_integer_entry_cmd, "%P"))
         self.start_session_btn = tk.Button(self.top_frame, text="Start Session", command=self.command_start_session)
         self.timer_label = tk.Label(self.top_frame, text="00:00")
-        self.config_session_btn = tk.Button(self.top_frame, image=self.conf_session_icon, compound="center", width=25, height=25,
-                                       command=lambda: print("Hai cliccato!"))
+        self.config_session_btn = tk.Button(self.top_frame, image=self.conf_session_icon, compound="center", width=25,
+                                            height=25, command=self.command_open_settings)
 
         # Pack elements
         self.top_frame.pack(side="top", fill="x", ipady=5)
@@ -73,7 +73,8 @@ class UEDatasetCreator:
             self.root.after(1000, self.update_timer)  # Call update_timer every 1000 ms
 
     # Validations
-    def validate_client_id_input(self, new_value):
+    @staticmethod
+    def validate_client_id_input(new_value):
         if new_value == "":
             return True  # Permetti l'input vuoto
         try:
