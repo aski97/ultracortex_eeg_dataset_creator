@@ -1,15 +1,47 @@
+import threading
 import tkinter as tk
 from threading import Thread
-import time
+import random
+from enum import Enum
 
+from AppState import AppState
 from DataSystem import DataSystem
 from Menubar import Menubar
 from SettingsDialog import SettingsDialog
+from singleton_decorator import singleton
 
 
+class AppStatus(Enum):
+    IDLE = 1
+    SESSION_STARTED = 2
+    SESSION_ENDED = 3
+
+
+class RecordingThread(Thread):
+    def __init__(self):
+        super(RecordingThread, self).__init__()
+
+        self.app_state = AppState()
+        # self.client_id = self.app.get_client_id()
+        # self.record_time = record_time
+        # self.session_name = session_name
+        self._stop_event = threading.Event()
+
+    def run(self):
+        while self.app_state.status == AppStatus.IDLE:
+            continue
+        print("è uscito")
+
+    def stop(self):
+        self._stop_event.set()
+
+
+@singleton
 class UEDatasetCreator:
 
-    def __init__(self, root):
+    def __init__(self):
+        root = tk.Tk()
+
         root.geometry("600x600")
         root.title("Ultracortex EEG Dataset Creator")
         root.configure(background="white")
@@ -18,6 +50,7 @@ class UEDatasetCreator:
 
         # Init Systems
         self.data_system = DataSystem()
+        self.state = AppState()
 
         # validations commands
         self.validate_positive_integer_entry_cmd = root.register(self.validate_client_id_input)
@@ -39,7 +72,7 @@ class UEDatasetCreator:
                                             height=25, command=self.command_open_settings)
 
         self.info_label = tk.Label(self.root, text="Info")
-
+        self.recorded_movements_label = tk.Label(self.root, text="Records: 0/0")
 
         # Pack elements
         self.top_frame.pack(side="top", fill="x", ipady=5)
@@ -49,9 +82,9 @@ class UEDatasetCreator:
         self.timer_label.pack(side="left", padx=10)
         self.config_session_btn.pack(side="left", padx=10)
 
-        # label is invisible at the beginning
-
         # App variables
+        self.state.status = AppStatus.IDLE
+        self.state.settings = self.data_system.load_settings_data()
         self.client_id_entry.insert(0, "0")
         self.timer_running = False
         self.timer_value = 0
@@ -59,62 +92,75 @@ class UEDatasetCreator:
         self.time_before_to_start = 5
         self.actual_iteration = 0
 
+        self.records = None
+        self.focus_duration = None
+        self.imagination_duration = None
+        self.selected_hand = 0  # 0 = Left hand, 1 = Right hand
+
     # Commands
     def command_start_session(self):
-        # TODO: From Start to Stop/Terminate
-        # Disable button
-        self.start_session_btn.config(state="disabled")
-        # Timer stars
-        self.start_timer()
-        # Countdown starts
+        # TODO: Change Start Button to Stop/Terminate Button
+        # Get settings variables
+        self.records = self.state.settings.get('records')
+        self.focus_duration = self.state.settings.get('waiting_time_before_recording')
+        self.imagination_duration = self.state.settings.get('movement_duration')
+        # Variables changes
+        self.actual_iteration = 0
+        self.timer_value = 0
+        # UI changes
+        self.start_session_btn.config(state="disabled")  # Disable button
         self.info_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
-        self.countdown(0)  # starts from 0
+        self.start_timer()  # Timer stars
+        self.recorded_movements_label.config(text=f"Records: {self.actual_iteration}/{self.records}")
+        self.recorded_movements_label.pack(side="top", pady=5)
+        # Start recording threads
+        recording_thread = RecordingThread()
+        recording_thread.start()
+        # Start iterations
+        self.next_session_iteration()
 
     def command_open_settings(self):
         SettingsDialog(self.root)
 
     # Methods
 
-    def countdown(self, time_passed):
-        if time_passed <= self.time_before_to_start:
-            self.info_label.config(text=f"Starting in {self.time_before_to_start - time_passed} s")
-            time_passed += 1
-            self.root.after(1000, self.countdown, time_passed)  # Call update_timer every 1000 ms
-        else:
-            # Session iterations start
-            self.next_imagination_movement()
-
-    def next_imagination_movement(self):
+    def next_session_iteration(self):
         # Check if there are records left
-        records = self.data_system.settings.get('records')
-        focus_duration = self.data_system.settings.get('waiting_time_before_recording')
-        imagination_duration = self.data_system.settings.get('movement_duration')
-        if self.actual_iteration < records:
-            self.session_iteration(0, focus_duration, imagination_duration)
+        self.recorded_movements_label.config(text=f"Records: {self.actual_iteration}/{self.records}")
+        if self.actual_iteration < self.records:
+            self.session_iteration(0)
         else:
             # Session end, no more records to record
             self.end_recording_session()
 
-    def session_iteration(self, time_passed, focus_duration, imagination_duration):
-        if time_passed == imagination_duration:
-            # end record go to the next
+    def session_iteration(self, time_passed):
+        if time_passed == (self.time_before_to_start + self.imagination_duration):
+            # end of record, go to the next one
             self.actual_iteration += 1
-            self.next_imagination_movement()
+            self.next_session_iteration()
         elif time_passed == 0:
+            # trigger waiting time
+            self.root.configure(bg="white")
+            self.info_label.config(text=f"Starting in {self.time_before_to_start - time_passed} s")
+        elif time_passed < self.time_before_to_start:
+            self.info_label.config(text=f"Starting in {self.time_before_to_start - time_passed} s")
+        elif time_passed == self.time_before_to_start:
             # trigger focus time
-            # TODO: MAKE THE DECISION RANDOM
-            self.info_label.config(text=f"Left hand")
+
+            self.selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand
+            self.info_label.config(text=f"{'Left' if self.selected_hand == 0 else 'Right'} hand")
             self.root.configure(bg="orange")  # Change background
-        elif time_passed == (imagination_duration - focus_duration):
+        elif time_passed == (self.time_before_to_start + self.focus_duration):
             # trigger start recording
             self.root.configure(bg="green")  # Change background
             self.record_movement()
 
         time_passed += 1
-        self.root.after(1000, self.session_iteration, time_passed, focus_duration, imagination_duration)
+        self.root.after(1000, self.session_iteration, time_passed)
 
     def record_movement(self):
         pass
+        # recording_thread_ts = RecordingThreadTS(record_time, filename_prefix)
 
     def start_timer(self):
         if not self.timer_running:
@@ -130,9 +176,18 @@ class UEDatasetCreator:
             self.root.after(1000, self.update_timer)  # Call update_timer every 1000 ms
 
     def end_recording_session(self):
-        self.timer_running = False
+        self.state.status = AppStatus.SESSION_ENDED
+        # UI Changes
         self.root.configure(bg="white")
         self.info_label.config(text=f"Session terminated, thank you!")
+        # Variables changes
+        self.timer_running = False
+
+    def get_client_id(self):
+        return self.client_id_entry.get()
+
+    def main_loop(self):
+        self.root.mainloop()
 
     # Validations
     @staticmethod
@@ -152,6 +207,5 @@ class UEDatasetCreator:
 
 
 if __name__ == '__main__':
-    window = tk.Tk()
-    app = UEDatasetCreator(window)
-    window.mainloop()
+    app = UEDatasetCreator()
+    app.main_loop()

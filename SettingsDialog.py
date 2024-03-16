@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import simpledialog
 
+from AppState import AppState
 from DataSystem import DataSystem
 from tkinter import messagebox
 
@@ -8,6 +9,7 @@ from tkinter import messagebox
 class SettingsDialog(simpledialog.Dialog):
 
     def __init__(self, parent):
+        self.app_state = AppState()
         self.records_entry = None
         self.movement_duration_scale = None
         self.waiting_time_before_recording_scale = None
@@ -30,7 +32,7 @@ class SettingsDialog(simpledialog.Dialog):
 
         tk.Label(master, text="Number of records:").grid(row=0)
 
-        settings = DataSystem().settings
+        settings = self.app_state.settings
 
         self.records_entry = tk.Entry(master)
         self.records_entry.grid(row=1, column=0)
@@ -84,5 +86,8 @@ class SettingsDialog(simpledialog.Dialog):
         md = self.movement_duration_scale.get()
         wt = self.waiting_time_before_recording_scale.get()
 
-        settings = DataSystem.create_settings_dict(records,md,wt)
+        settings = DataSystem().create_settings_dict(records, md, wt)
+        # update local state
+        self.app_state.settings = settings
+        # save on file
         DataSystem().save_settings_data(settings)

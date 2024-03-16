@@ -1,24 +1,13 @@
 import numpy as np
+import os
+from datetime import datetime
+from singleton_decorator import singleton
 
 
+@singleton
 class DataSystem:
-    _instance = None
     _path = "data/"
     _settings_filename = "settings.npy"
-
-    settings = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super().__new__(cls, *args, **kwargs)
-            cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self):
-        if self._initialized:
-            return
-        self._initialized = True
-        self.load_settings_data()
 
     def load(self, filename: str) -> np.ndarray | None:
         full_path = self._path + filename
@@ -30,29 +19,44 @@ class DataSystem:
 
     def save(self, file: np.ndarray, filename: str):
         full_path = self._path + filename
+        directory = os.path.dirname(full_path)
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
         np.save(full_path, file)
 
-    def load_settings_data(self):
+    def load_settings_data(self) -> dict:
         npy_settings = self.load(self._settings_filename)
 
         if npy_settings is None:
             # Create default settings
-            self.settings = self.create_settings_dict(10, 10, 6)
-            return
+            return self.create_settings_dict(10, 10, 6)
 
         # Convert npy array to dictionary
         tuple_list = npy_settings.tolist()
-        self.settings = dict(tuple_list)
+        return dict(tuple_list)
+
+    def save_timeseries_record(self, client_id, timeseries, record_time, hand, session_name):
+        # Compute sampling rate
+        sr = int(len(timeseries) / record_time)
+        # store data into numpy array
+        numpy_data_ts = np.array(timeseries)
+
+        directory = f"recordings/{client_id}/{session_name}/{hand}"
+        filename = f"TS_{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{sr}Hz"
+
+        path = directory + filename
+        self.save(numpy_data_ts, path)
+        print("Data Saved...")
 
     def save_settings_data(self, value: dict) -> bool:
         # Check we have all the parameters
         if 'records' not in value or 'movement_duration' not in value or 'waiting_time_before_recording' not in value:
             return False
 
-        # Update local value
-        self.settings = value
         # Convert to npy array
-        npy_settings = np.array(list(self.settings.items()), dtype=object)
+        npy_settings = np.array(list(value.items()), dtype=object)
         # Save data
         self.save(npy_settings, self._settings_filename)
 
