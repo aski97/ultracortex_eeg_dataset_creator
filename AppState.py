@@ -5,7 +5,6 @@ from singleton_decorator import singleton
 class AppState:
 
     def __init__(self):
-        self._settings = None
         self._number_records = None
         self._focus_duration = None  # Duration of the orange screen
         self._recording_duration = None  # Duration of the green screen
@@ -15,6 +14,8 @@ class AppState:
         self._session_name = None
         self._waiting_time = 5
         self._actual_iteration = 0
+        self._session_running_time = 0
+        self._actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
 
     @property
     def client_id(self):
@@ -97,21 +98,30 @@ class AppState:
         self._actual_iteration = value
 
     @property
+    def actual_selected_hand(self):
+        """
+        The selected hand for the actual iteration.
+        It could be 0 for the left hand,
+        or 1 for the right hand.
+        """
+        return self._actual_selected_hand
+
+    @actual_selected_hand.setter
+    def actual_selected_hand(self, value):
+        self._actual_selected_hand = value
+
+    @property
+    def session_running_time(self):
+        return self._session_running_time
+
+    @session_running_time.setter
+    def session_running_time(self, value):
+        self._session_running_time = value
+
+    @property
     def status(self):
         return self._status
 
     @status.setter
     def status(self, value):
         self._status = value
-
-    @property
-    def settings(self):
-        """
-
-        :return: {'records', 'movement_duration', 'waiting_time_before_recording'}
-        """
-        return self._settings
-
-    @settings.setter
-    def settings(self, value):
-        self._settings = value

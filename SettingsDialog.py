@@ -9,10 +9,14 @@ from tkinter import messagebox
 class SettingsDialog(simpledialog.Dialog):
 
     def __init__(self, parent):
+        self.number_records_label = None
+        self.number_records_entry = None
+        self.focus_duration_label = None
+        self.focus_duration_scale = None
+        self.recording_duration_scale = None
+        self.recording_duration_label = None
+        self.iteration_duration_label = None
         self.app_state = AppState()
-        self.records_entry = None
-        self.movement_duration_scale = None
-        self.waiting_time_before_recording_scale = None
         super().__init__(parent, "Settings")
 
     def buttonbox(self):
@@ -29,44 +33,38 @@ class SettingsDialog(simpledialog.Dialog):
         box.pack()
 
     def body(self, master):
-
-        tk.Label(master, text="Number of records:").grid(row=0)
-
-        settings = self.app_state.settings
-
-        self.records_entry = tk.Entry(master)
-        self.records_entry.grid(row=1, column=0)
-
-        tk.Label(master, text="Movement duration (s)").grid(row=2, pady=2)
-
-        self.movement_duration_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
-        self.movement_duration_scale.grid(row=3, column=0, pady=1)
-
-        tk.Label(master, text="Waiting time before recording the movement (s)").grid(row=4, pady=2)
-
-        self.waiting_time_before_recording_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
-        self.waiting_time_before_recording_scale.grid(row=5, column=0, pady=1)
-
-        record_duration = settings['movement_duration'] - settings['waiting_time_before_recording']
+        self.number_records_label = tk.Label(master, text="Number of records:")
+        self.number_records_entry = tk.Entry(master)
+        self.focus_duration_label = tk.Label(master, text="Focus duration (s)")
+        self.focus_duration_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
+        self.recording_duration_label = tk.Label(master, text="Recording duration (s)")
+        self.recording_duration_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
         # TODO: UPDATE THE VALUE RUNTIME
-        tk.Label(master, text=f"Record duration: {record_duration} s").grid(row=6, pady=5)
+        self.iteration_duration_label = tk.Label(master, text=f"Iteration duration: {self.app_state.iteration_duration}")
+
+        self.number_records_label.grid(row=0)
+        self.number_records_entry.grid(row=1, column=0)
+        self.focus_duration_label.grid(row=2, pady=2)
+        self.focus_duration_scale.grid(row=3, column=0, pady=1)
+        self.recording_duration_label.grid(row=4, pady=2)
+        self.recording_duration_scale.grid(row=5, column=0, pady=1)
+        self.iteration_duration_label.grid(row=6, pady=5)
 
         # Set values
-        self.records_entry.insert(0, settings['records'])
-        self.movement_duration_scale.set(settings['movement_duration'])
-        self.waiting_time_before_recording_scale.set(settings['waiting_time_before_recording'])
+        self.number_records_entry.insert(0, self.app_state.number_records)
+        self.focus_duration_scale.set(self.app_state.focus_duration)
+        self.recording_duration_scale.set(self.app_state.recording_duration)
 
-        return self.records_entry  # Restituisce l'entry di default per il focus
+        return self.number_records_entry  # Focus on the first entry
 
     def validate(self):
-        wt = self.waiting_time_before_recording_scale.get()
-        md = self.movement_duration_scale.get()
-        records = self.records_entry.get()
+        number_records_string = self.number_records_entry.get()
+
         title = "Error"
 
         try:
             # Convert to int
-            value = int(records)
+            value = int(number_records_string)
             if value < 1:
                 messagebox.showerror(title, "The number of records must be greater then 0")
                 return False
@@ -74,20 +72,20 @@ class SettingsDialog(simpledialog.Dialog):
             messagebox.showerror(title, "Invalid characters at the field 'number of records'. Put a positive number")
             return False
 
-        if wt >= md:
-            messagebox.showerror(title, "Movement duration must be greater then waiting time before recording")
-            return False
-
         return True
 
     def apply(self):
-        # Save values
-        records = int(self.records_entry.get())
-        md = self.movement_duration_scale.get()
-        wt = self.waiting_time_before_recording_scale.get()
+        # Get values
+        number_records = int(self.number_records_entry.get())
+        focus_duration = self.focus_duration_scale.get()
+        recording_duration = self.recording_duration_scale.get()
+        iteration_duration = focus_duration + recording_duration
 
-        settings = DataSystem().create_settings_dict(records, md, wt)
+        # Save on file
+        DataSystem().save_settings_data(number_records, focus_duration, recording_duration)
+
         # update local state
-        self.app_state.settings = settings
-        # save on file
-        DataSystem().save_settings_data(settings)
+        self.app_state.number_records = number_records
+        self.app_state.focus_duration = focus_duration
+        self.app_state.recording_duration = recording_duration
+        self.app_state.iteration_duration = iteration_duration

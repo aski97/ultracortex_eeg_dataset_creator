@@ -87,31 +87,29 @@ class UEDatasetCreator:
         self.config_session_btn.pack(side="left", padx=10)
 
         # App variables
+        number_records, focus_duration, recording_duration, iteration_duration = self.data_system.load_settings_data()
+
         self.state.status = AppStatus.IDLE
-        self.state.settings = self.data_system.load_settings_data()
+        self.state.number_records = number_records
+        self.state.focus_duration = focus_duration
+        self.state.recording_duration = recording_duration
+        self.state.iteration_duration = iteration_duration
         self.state.client_id = 0
         self.state.session_name = "Session 1"
         self.state.waiting_time = 5  # Time to wait before to start an iteration
         self.state.actual_iteration = 0
+        self.state.session_running_time = 0
+        self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
 
         self.timer_running = False
-        self.timer_value = 0
-
-        self.records = None
-        self.focus_duration = None
-        self.imagination_duration = None
-        self.selected_hand = 0  # 0 = Left hand, 1 = Right hand
 
     # Commands
     def command_start_session(self):
         # TODO: Change Start Button to Stop/Terminate Button
-        # Get settings variables
-        self.records = self.state.settings.get('records')
-        self.focus_duration = self.state.settings.get('waiting_time_before_recording')
-        self.imagination_duration = self.state.settings.get('movement_duration')
+
         # Variables changes
         self.state.actual_iteration = 0
-        self.timer_value = 0
+        self.state.session_running_time = 0
         # UI changes
         self.start_session_btn.config(state="disabled")  # Disable button
         self.config_session_btn.config(state="disabled")  # Disable button
@@ -119,7 +117,7 @@ class UEDatasetCreator:
         # TODO: disable menu items (New Session/Settings)
         self.info_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
         self.start_timer()  # Timer stars
-        self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.records}")
+        self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
         self.recorded_movements_label.pack(side="top", pady=5)
         # Start recording threads
         recording_thread = RecordingThread()
@@ -134,15 +132,15 @@ class UEDatasetCreator:
 
     def next_session_iteration(self):
         # Check if there are records left
-        self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.records}")
-        if self.state.actual_iteration < self.records:
+        self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
+        if self.state.actual_iteration < self.state.number_records:
             self.session_iteration(0)
         else:
             # Session end, no more records to record
             self.end_recording_session()
 
     def session_iteration(self, time_passed):
-        if time_passed == (self.state.waiting_time + self.imagination_duration):
+        if time_passed == (self.state.waiting_time + self.state.iteration_duration):
             # end of record, go to the next one
             self.state.actual_iteration += 1
             self.next_session_iteration()
@@ -155,10 +153,10 @@ class UEDatasetCreator:
         elif time_passed == self.state.waiting_time:
             # trigger focus time
 
-            self.selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand
-            self.info_label.config(text=f"{'Left' if self.selected_hand == 0 else 'Right'} hand")
+            self.state.actual_selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand
+            self.info_label.config(text=f"{'Left' if self.state.actual_selected_hand == 0 else 'Right'} hand")
             self.root.configure(bg="orange")  # Change background
-        elif time_passed == (self.state.waiting_time + self.focus_duration):
+        elif time_passed == (self.state.waiting_time + self.state.focus_duration):
             # trigger start recording
             self.root.configure(bg="green")  # Change background
             self.record_movement()
@@ -177,10 +175,10 @@ class UEDatasetCreator:
 
     def update_timer(self):
         if self.timer_running:
-            minutes = self.timer_value // 60
-            seconds = self.timer_value % 60
+            minutes = self.state.session_running_time // 60
+            seconds = self.state.session_running_time % 60
             self.timer_label.config(text="{:02d}:{:02d}".format(minutes, seconds))
-            self.timer_value += 1
+            self.state.session_running_time += 1
             self.root.after(1000, self.update_timer)  # Call update_timer every 1000 ms
 
     def end_recording_session(self):
