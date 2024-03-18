@@ -9,7 +9,8 @@ class AppState:
         self._focus_duration = None  # Duration of the orange screen
         self._recording_duration = None  # Duration of the green screen
         self._iteration_duration = None  # Duration of the iteration (Focus + Record phase)
-        self._status = None
+        self._iteration_status = None
+        self._app_status = None
         self._client_id = None
         self._session_name = None
         self._waiting_time = 5
@@ -119,9 +120,17 @@ class AppState:
         self._session_running_time = value
 
     @property
-    def status(self):
-        return self._status
+    def app_status(self):
+        return self._app_status
 
-    @status.setter
-    def status(self, value):
-        self._status = value
+    @app_status.setter
+    def app_status(self, value):
+        self._app_status = value
+
+    @property
+    def iteration_status(self):
+        return self._iteration_status
+
+    @iteration_status.setter
+    def iteration_status(self, value):
+        self._iteration_status = value

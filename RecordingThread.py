@@ -1,11 +1,14 @@
 import threading
 
 from AppState import AppState
-from main import UEDatasetCreator
+from DataSystem import DataSystem
+from LifecycleStatus import Status
 
 # Variabile globale per il debug:
 debug_mode = False
 timestamps_debug = []
+
+
 # funzioni di debug
 # def print_debug_timestamps():  #non attivare su entrambi i thread in contemporanea
 #     print("\nTimestamps Debug:")
@@ -53,18 +56,29 @@ timestamps_debug = []
 class RecordingThread(threading.Thread):
     def __init__(self):
         super(RecordingThread, self).__init__()
+
         self.app_state = AppState()
-        # self.data_system = DataSystem()
+        self.data_system = DataSystem()
+
         self._stop_event = threading.Event()
 
     def run(self):
-        print("Ce l'abbiamo fatta")
+        # Instauro la connessione
+        while self.app_state.app_status == Status.SESSION_STARTED:
+
+            while self.app_state.iteration_status == Status.RECORDING_PHASE:
+                # memorizzo i file della fase di recording
+                continue
+
+            continue
+        print("END SESSION")
         # # TODO: put a while and conditions
         # record_data_ts = buffer_receive(self.record_time,self._stop_event)
         # # TODO: make placeholders dynamic
-        # self.app.data_system.save_timeseries_record(self.client_id,record_data_ts, self.record_time, "Left", self.session_name)
+        # self.data_system.save_timeseries_record(self.client_id,record_data_ts, self.record_time, "Left", self.session_name)
         #
         # if debug_mode:
         #     print_debug_timestamps()
+
     def stop(self):
         self._stop_event.set()
