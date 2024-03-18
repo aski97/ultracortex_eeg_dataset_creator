@@ -1,8 +1,8 @@
 import threading
-
 from AppState import AppState
 from DataSystem import DataSystem
 from LifecycleStatus import Status
+from pylsl import StreamInlet, resolve_stream
 
 # Variabile globale per il debug:
 debug_mode = False

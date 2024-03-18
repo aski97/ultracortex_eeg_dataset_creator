@@ -19,6 +19,7 @@ class UEDatasetCreator:
         root.geometry("600x600")
         root.title("Ultracortex EEG Dataset Creator")
         root.configure(background="white")
+        root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.root = root
 
@@ -77,6 +78,11 @@ class UEDatasetCreator:
         self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
 
     # Commands
+    def on_closing(self):
+        self.state.app_status = Status.IDLE
+        self.state.iteration_status = Status.IDLE
+        self.root.destroy()
+
     def command_start_session(self):
         # TODO: Change Start Button to Stop/Terminate Button
 

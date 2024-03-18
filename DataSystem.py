@@ -31,7 +31,7 @@ class DataSystem:
 
         if npy_settings is None:
             # Create default settings
-            settings = self.create_settings_dict(10, 3, 6)
+            settings = self.create_settings_dict(5, 3, 6)
 
             number_records = int(settings['number_records'])
             focus_duration = int(settings['focus_duration'])
@@ -66,7 +66,7 @@ class DataSystem:
     def save_settings_data(self, number_records, focus_duration, recording_duration) -> bool:
         # Convert to npy array
         dict_settings = self.create_settings_dict(number_records, focus_duration, recording_duration)
-        npy_settings = np.array(list(dict_settings), dtype=object)
+        npy_settings = np.array(list(dict_settings.items()), dtype=object)
         # Save data
         self.save(npy_settings, self._settings_filename)
 
@@ -74,5 +74,5 @@ class DataSystem:
 
     @staticmethod
     def create_settings_dict(number_records: int, focus_duration: int, recording_duration: int):
-        return {'number_records': number_records, 'recording_duration': recording_duration,
-                'focus_duration': focus_duration}
+        return {'number_records': number_records, 'focus_duration': focus_duration,
+                'recording_duration': recording_duration}
