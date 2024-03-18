@@ -26,16 +26,29 @@ class DataSystem:
 
         np.save(full_path, file)
 
-    def load_settings_data(self) -> dict:
+    def load_settings_data(self) -> tuple:
         npy_settings = self.load(self._settings_filename)
 
         if npy_settings is None:
             # Create default settings
-            return self.create_settings_dict(10, 10, 6)
+            settings = self.create_settings_dict(10, 10, 6)
+            
+            number_records = int(settings['records'])
+            focus_duration = int(settings['waiting_time_before_recording'])
+            iteration_duration = int(settings['movement_duration'])
+            recording_duration = iteration_duration - focus_duration
+
+            return number_records, focus_duration, recording_duration, iteration_duration
 
         # Convert npy array to dictionary
-        tuple_list = npy_settings.tolist()
-        return dict(tuple_list)
+        setting_elements = dict(npy_settings.tolist())
+
+        number_records = int(setting_elements['records'])
+        focus_duration = int(setting_elements['waiting_time_before_recording'])
+        iteration_duration = int(setting_elements['movement_duration'])
+        recording_duration = iteration_duration - focus_duration
+
+        return number_records, focus_duration, recording_duration, iteration_duration
 
     def save_timeseries_record(self, client_id, timeseries, record_time, hand, session_name):
         # Compute sampling rate

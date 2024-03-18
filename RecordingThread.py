@@ -1,4 +1,6 @@
 import threading
+
+from AppState import AppState
 from main import UEDatasetCreator
 
 # Variabile globale per il debug:
@@ -51,12 +53,8 @@ timestamps_debug = []
 class RecordingThread(threading.Thread):
     def __init__(self):
         super(RecordingThread, self).__init__()
-        self.app = UEDatasetCreator()
-        self.client_id = self.app.get_client_id()
+        self.app_state = AppState()
         # self.data_system = DataSystem()
-
-        # self.record_time = record_time
-        # self.session_name = session_name
         self._stop_event = threading.Event()
 
     def run(self):
