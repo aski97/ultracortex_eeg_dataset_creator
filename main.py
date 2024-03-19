@@ -1,4 +1,3 @@
-import time
 import tkinter as tk
 import random
 
@@ -148,7 +147,6 @@ class UEDatasetCreator:
 
         time_passed += 1
         self.root.after(1000, self.session_iteration, time_passed)
-
 
     def start_timer(self):
         if self.state.app_status == Status.SESSION_STARTED:
