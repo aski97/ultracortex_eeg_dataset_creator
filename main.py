@@ -1,3 +1,4 @@
+import time
 import tkinter as tk
 import random
 
@@ -63,7 +64,7 @@ class UEDatasetCreator:
 
         # App variables
         number_records, focus_duration, recording_duration, iteration_duration = self.data_system.load_settings_data()
-
+        self.recording_thread = None
         self.state.app_status = Status.IDLE
         self.state.iteration_status = Status.IDLE
         self.state.number_records = number_records
@@ -76,6 +77,7 @@ class UEDatasetCreator:
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
         self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
+        self.state.sampling_rate = 0.01  # 250Hz
 
     # Commands
     def on_closing(self):
@@ -101,8 +103,8 @@ class UEDatasetCreator:
         self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
         self.recorded_movements_label.pack(side="top", pady=5)
         # Start recording threads
-        recording_thread = RecordingThread()
-        recording_thread.start()
+        self.recording_thread = RecordingThread()
+        self.recording_thread.start()
         # Start iterations
         self.next_session_iteration()
 
@@ -143,14 +145,10 @@ class UEDatasetCreator:
             # trigger start recording
             self.state.iteration_status = Status.RECORDING_PHASE
             self.root.configure(bg="green")  # Change background
-            self.record_movement()
 
         time_passed += 1
         self.root.after(1000, self.session_iteration, time_passed)
 
-    def record_movement(self):
-        pass
-        # recording_thread_ts = RecordingThreadTS(record_time, filename_prefix)
 
     def start_timer(self):
         if self.state.app_status == Status.SESSION_STARTED:
@@ -165,10 +163,10 @@ class UEDatasetCreator:
             self.root.after(1000, self.update_timer)  # Call update_timer every 1000 ms
 
     def end_recording_session(self):
-        self.state.app_status = Status.SESSION_ENDED
         # UI Changes
         self.root.configure(bg="white")
         self.info_label.config(text=f"Session terminated, thank you!")
+        self.state.app_status = Status.SESSION_ENDED
 
     def client_id_changed(self, *args):
         value = self.client_id_var.get()

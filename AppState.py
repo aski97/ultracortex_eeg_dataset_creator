@@ -17,6 +17,7 @@ class AppState:
         self._actual_iteration = 0
         self._session_running_time = 0
         self._actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
+        self._sampling_rate = 0.004  # 250Hz
 
     @property
     def client_id(self):
@@ -134,3 +135,11 @@ class AppState:
     @iteration_status.setter
     def iteration_status(self, value):
         self._iteration_status = value
+
+    @property
+    def sampling_rate(self):
+        return self._sampling_rate
+
+    @sampling_rate.setter
+    def sampling_rate(self, value):
+        self._sampling_rate = value

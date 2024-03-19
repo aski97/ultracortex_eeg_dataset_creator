@@ -46,7 +46,7 @@ class DataSystem:
         number_records = int(setting_elements['number_records'])
         focus_duration = int(setting_elements['focus_duration'])
         recording_duration = int(setting_elements['recording_duration'])
-        iteration_duration= focus_duration + recording_duration
+        iteration_duration = focus_duration + recording_duration
 
         return number_records, focus_duration, recording_duration, iteration_duration
 
@@ -56,7 +56,7 @@ class DataSystem:
         # store data into numpy array
         numpy_data_ts = np.array(timeseries)
 
-        directory = f"recordings/{client_id}/{session_name}/{hand}"
+        directory = f"recordings/{client_id}/{session_name}/{hand}/"
         filename = f"TS_{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{sr}Hz"
 
         path = directory + filename
