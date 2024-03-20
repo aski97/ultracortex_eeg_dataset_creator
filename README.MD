@@ -9,4 +9,3 @@ WORK IN PROGRESS
 - only ubuntu : sudo apt-get install python-tk 
 ### For the visualizing tool
 - matplotlib: pip install matplotlib
-- pandas: 
