@@ -2,9 +2,27 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-
 from DataSystem import DataSystem
+
+
+class ScrollablePlotFrame(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.canvas = tk.Canvas(self)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas)
+
+        self.scrollable_frame.bind("<Configure>", self.on_frame_configure)
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+    def on_frame_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
 
 class TrackRecordedPage:
@@ -26,95 +44,41 @@ class TrackRecordedPage:
         self.menu_frame = tk.Frame(self.window)
         self.select_channel_label = tk.Label(self.menu_frame, text="Select Channel:")
 
-        self.graph_frame = tk.Frame(self.window)
-
         # Pack elements
         self.menu_frame.pack(side="top", fill="x", ipady=5)
         self.select_channel_label.pack(side="left", padx=2)
 
-        self.graph_frame.pack(side="top", fill="x", expand=True)
+        self.scrollable_frame = ScrollablePlotFrame(self.window)
+        self.scrollable_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=5)
 
-        # main_frame = tk.Frame(self.window)
-        # main_frame.pack(fill=tk.BOTH, expand=1)
-        #
-        # # Create Frame for X Scrollbar
-        # sec = tk.Frame(main_frame)
-        # sec.pack(fill=tk.X, side=tk.BOTTOM)
-        #
-        # my_canvas = tk.Canvas(main_frame)
-        # my_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-        #
-        # # Add A Scrollbars to Canvas
-        # x_scrollbar = ttk.Scrollbar(sec, orient=tk.HORIZONTAL, command=my_canvas.xview)
-        # x_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-        #
-        # y_scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=my_canvas.yview)
-        # y_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        #
-        # # Configure the canvas
-        #
-        # my_canvas.configure(xscrollcommand=x_scrollbar.set)
-        #
-        # my_canvas.configure(yscrollcommand=y_scrollbar.set)
-        #
-        # my_canvas.bind("<Configure>", lambda e: my_canvas.config(scrollregion=my_canvas.bbox(tk.ALL)))
-        #
-        # # Create Another Frame INSIDE the Canvas
-        #
-        # second_frame = tk.Frame(my_canvas)
-        #
-        # # Add that New Frame a Window In The Canvas
-        #
-        # my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
-
-        # self.print()
-
-        # channels = self.data.shape[1]
-        channels = 2
-
-        f = Figure(figsize=(10, 10), dpi=100)
-        # ax = f.add_subplot(211)
-        # ax.plot(self.data[:, 0])
-        # ax.set_xlabel("time [s]")
-        # ax.set_ylabel("Signal")
-
-        # f, axs = plt.subplots(channels, 1, figsize=(1, 10))
-        #
-        for i in range(channels):
-            ax = f.add_subplot(channels, 1, i+1)
-            ax.plot(self.data[:, 0])
-            ax.set_xlabel("time [s]")
-            ax.set_ylabel("Signal")
-            ax.set_title(f'Channel {i}')
-
-
-        canvas = FigureCanvasTkAgg(f, master=self.graph_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2Tk(canvas, self.window, pack_toolbar=False)
-        toolbar.update()
-
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        toolbar.pack(side=tk.BOTTOM, fill=tk.X)
-
-    def print(self):
         channels = self.data.shape[1]
 
-        f, axs = plt.subplots(channels, 1, figsize=(5, 5))
+        for _ in range(channels):  # Add 10 plots for demonstration
+            self.add_plot(self.scrollable_frame.scrollable_frame, _, plot_height=500)  # Adjust plot height as needed
 
-        for i in range(channels):
-            axs[i].plot(self.data[:, i])
-            axs[i].set_title(f'Channel {i}')
-            axs[i].set_xlabel('Time')
-            axs[i].set_ylabel('Signal Value')
 
-        plt.tight_layout()
+    def add_plot(self, frame, channel, plot_height):
+        fig = Figure(figsize=(10, 1))
 
-        canvas = FigureCanvasTkAgg(f, master=self.window)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        ax = fig.add_subplot(111)
+        ax.plot(self.data[:, channel])
+        ax.set_xlabel("time [s]")
+        ax.set_ylabel("Signal")
+        ax.set_title(f'Channel {channel}')
 
-        toolbar = NavigationToolbar2Tk(canvas, self.window)
+        canvas = FigureCanvasTkAgg(fig, master=frame)
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.config(height=plot_height)  # Adjust height as needed
+        canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+        toolbar_frame = tk.Frame(frame)
+        toolbar_frame.pack(fill=tk.X, expand=True, pady=[0,30])
+
+        toolbar = NavigationToolbar2Tk(canvas, toolbar_frame)
         toolbar.update()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        # canvas_widget.pack(fill=tk.BOTH, expand=True, pady=[0, 30])
+        # canvas_widget.bind('<Configure>', lambda event, canvas_widget : self.frame_width(event, canvas_widget))
+
+    # def frame_width(self, event, canvas_widget):
+    #     canvas_width = event.width
+    #     canvas_widget.itemconfig(self.scrollable_frame, width=canvas_width)
