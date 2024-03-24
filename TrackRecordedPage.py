@@ -41,21 +41,46 @@ class TrackRecordedPage:
             print("Numpy file must be 2D.")
             return
 
+        self.channels = self.data.shape[1]
+
+        self.checkboxes_vars = []
+        self.plots = []
+
         self.menu_frame = tk.Frame(self.window)
         self.select_channel_label = tk.Label(self.menu_frame, text="Select Channel:")
+
 
         # Pack elements
         self.menu_frame.pack(side="top", fill="x", ipady=5)
         self.select_channel_label.pack(side="left", padx=2)
+        for _ in range(self.channels):
+            value = tk.BooleanVar()
+            value.set(True)
+            value.trace_add("write", lambda name, index, mode, var=value: self.on_channel_selection(name, index, mode))
+            c = tk.Checkbutton(self.menu_frame, text=f'{_}', variable=value, onvalue=True, offvalue=False)
+            c.pack(side="left", expand=True)
+
+            self.checkboxes_vars.append(value)
 
         self.scrollable_frame = ScrollablePlotFrame(self.window)
         self.scrollable_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=5)
 
-        channels = self.data.shape[1]
+        for _ in range(self.channels):
+            plot = self.add_plot(self.scrollable_frame.scrollable_frame, _, plot_height=500)
+            self.plots.append(plot)
 
-        for _ in range(channels):  # Add 10 plots for demonstration
-            self.add_plot(self.scrollable_frame.scrollable_frame, _, plot_height=500)  # Adjust plot height as needed
+    def on_channel_selection(self,name, index, mode):
+        i = int(name.replace('PY_VAR', '')) - 1
+        value = self.checkboxes_vars[i].get()
 
+        if value:
+            # show plot channel i
+            self.plots[i].pack()
+            pass
+        else:
+            # disable plot channel i
+            self.plots[i].pack_forget()
+            pass
 
     def add_plot(self, frame, channel, plot_height):
         fig = Figure(figsize=(10, 1))
@@ -66,16 +91,21 @@ class TrackRecordedPage:
         ax.set_ylabel("Signal")
         ax.set_title(f'Channel {channel}')
 
-        canvas = FigureCanvasTkAgg(fig, master=frame)
+        container = tk.Frame(frame)
+        container.pack(side="top", fill="x", expand=True)
+
+        canvas = FigureCanvasTkAgg(fig, master=container)
         canvas_widget = canvas.get_tk_widget()
         canvas_widget.config(height=plot_height)  # Adjust height as needed
         canvas_widget.pack(fill=tk.BOTH, expand=True)
 
-        toolbar_frame = tk.Frame(frame)
+        toolbar_frame = tk.Frame(container)
         toolbar_frame.pack(fill=tk.X, expand=True, pady=[0,30])
 
         toolbar = NavigationToolbar2Tk(canvas, toolbar_frame)
         toolbar.update()
+
+        return container
         # canvas_widget.pack(fill=tk.BOTH, expand=True, pady=[0, 30])
         # canvas_widget.bind('<Configure>', lambda event, canvas_widget : self.frame_width(event, canvas_widget))
 
