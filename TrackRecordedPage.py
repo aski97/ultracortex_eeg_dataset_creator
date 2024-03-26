@@ -58,7 +58,7 @@ class TrackRecordedPage:
             value.set(True)
             value.trace_add("write", lambda name, index, mode, var=value: self.on_channel_selection(name, index, mode))
             c = tk.Checkbutton(self.menu_frame, text=f'{_}', variable=value, onvalue=True, offvalue=False)
-            c.pack(side="left", expand=True)
+            c.pack(side="left")
 
             self.checkboxes_vars.append(value)
 
@@ -75,11 +75,11 @@ class TrackRecordedPage:
 
         if value:
             # show plot channel i
-            self.plots[i].pack()
+            self.plots[i].grid(column=1, row=i)
             pass
         else:
             # disable plot channel i
-            self.plots[i].pack_forget()
+            self.plots[i].grid_forget()
             pass
 
     def add_plot(self, frame, channel, plot_height):
@@ -92,7 +92,7 @@ class TrackRecordedPage:
         ax.set_title(f'Channel {channel}')
 
         container = tk.Frame(frame)
-        container.pack(side="top", fill="x", expand=True)
+        container.grid(column=1, row=channel)
 
         canvas = FigureCanvasTkAgg(fig, master=container)
         canvas_widget = canvas.get_tk_widget()
