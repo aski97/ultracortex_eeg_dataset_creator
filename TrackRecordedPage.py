@@ -47,11 +47,9 @@ class TrackRecordedPage:
         self.plots = []
 
         self.menu_frame = tk.Frame(self.window)
-        self.select_channel_label = tk.Label(self.menu_frame, text="Select Channel:")
-
-
-        # Pack elements
         self.menu_frame.pack(side="top", fill="x", ipady=5)
+
+        self.select_channel_label = tk.Label(self.menu_frame, text="Select Channel:")
         self.select_channel_label.pack(side="left", padx=2)
         for _ in range(self.channels):
             value = tk.BooleanVar()
@@ -61,6 +59,12 @@ class TrackRecordedPage:
             c.pack(side="left")
 
             self.checkboxes_vars.append(value)
+
+        self.select_all_button = tk.Button(self.menu_frame, text="Select all", command=self.select_all_channels)
+        self.select_all_button.pack(side="left", padx=5)
+
+        self.deselect_all_button = tk.Button(self.menu_frame, text="Deselect all", command=self.deselect_all_channels)
+        self.deselect_all_button.pack(side="left")
 
         self.scrollable_frame = ScrollablePlotFrame(self.window)
         self.scrollable_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=5)
@@ -81,6 +85,14 @@ class TrackRecordedPage:
             # disable plot channel i
             self.plots[i].grid_forget()
             pass
+
+    def select_all_channels(self):
+        for _ in range(self.channels):
+            self.checkboxes_vars[_].set(True)
+
+    def deselect_all_channels(self):
+        for _ in range(self.channels):
+            self.checkboxes_vars[_].set(False)
 
     def add_plot(self, frame, channel, plot_height):
         fig = Figure(figsize=(10, 1))
