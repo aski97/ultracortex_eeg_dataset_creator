@@ -11,13 +11,11 @@ class ScrollablePlotFrame(tk.Frame):
 
         self.canvas = tk.Canvas(self)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas)
-
+        self.scrollable_frame = tk.Frame(self.canvas, bg="orange")
         self.scrollable_frame.bind("<Configure>", self.on_frame_configure)
 
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
@@ -30,7 +28,7 @@ class TrackRecordedPage:
     def __init__(self, parent, filename):
         self.window = tk.Toplevel(parent)
         self.window.title(f"Track {filename}")
-        self.window.geometry("800x800")
+        self.window.geometry("1024x920")
 
         self.data = DataSystem().load(filename)
 
@@ -73,7 +71,7 @@ class TrackRecordedPage:
             plot = self.add_plot(self.scrollable_frame.scrollable_frame, _, plot_height=500)
             self.plots.append(plot)
 
-    def on_channel_selection(self,name, index, mode):
+    def on_channel_selection(self, name, index, mode):
         i = int(name.replace('PY_VAR', '')) - 1
         value = self.checkboxes_vars[i].get()
 
