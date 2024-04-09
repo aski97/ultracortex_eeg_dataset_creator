@@ -1,9 +1,11 @@
+import threading
 import tkinter as tk
 import random
+from tkinter import messagebox
 
 from AppState import AppState
 from DataSystem import DataSystem
-from LifecycleStatus import Status
+from LifecycleStatus import Status, StreamStatus
 from Menubar import Menubar
 from RecordingThread import RecordingThread
 from SettingsDialog import SettingsDialog
@@ -66,6 +68,7 @@ class UEDatasetCreator:
         self.recording_thread = None
         self.state.app_status = Status.IDLE
         self.state.iteration_status = Status.IDLE
+        self.state.stream_status = StreamStatus.IDLE
         self.state.number_records = number_records
         self.state.focus_duration = focus_duration
         self.state.recording_duration = recording_duration
@@ -97,13 +100,28 @@ class UEDatasetCreator:
         self.config_session_btn.config(state="disabled")  # Disable button
         self.client_id_entry.config(state="disabled")  # Disable entry
         # TODO: disable menu items (New Session/Settings)
+        # Start recording threads
+        self.recording_thread = RecordingThread()
+        self.recording_thread.start()
+
+        with self.state.on_stream_status_change:
+            while True:
+                self.state.on_stream_status_change.wait()
+                if self.state.stream_status == StreamStatus.NOT_FOUND:
+                    messagebox.showerror("Stream not found", "No EEG Stream found, please make sure lsl streaming is enabled on OpenBCI GUI.")
+                    self.reset_session()
+                    return
+                elif self.state.stream_status == StreamStatus.SEARCHING:
+                    print("looking for an EEG stream...")
+                elif self.state.stream_status == StreamStatus.FOUND:
+                    print("Stream found")
+                    break
+
         self.info_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
         self.start_timer()  # Timer stars
         self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
         self.recorded_movements_label.pack(side="top", pady=5)
-        # Start recording threads
-        self.recording_thread = RecordingThread()
-        self.recording_thread.start()
+
         # Start iterations
         self.next_session_iteration()
 
@@ -111,6 +129,17 @@ class UEDatasetCreator:
         SettingsDialog(self.root)
 
     # Methods
+
+    def reset_session(self):
+        self.state.app_status = Status.IDLE
+        self.state.iteration_status = Status.IDLE
+        # refresh UI
+        self.reset_ui_session()
+
+    def reset_ui_session(self):
+        self.start_session_btn.config(state="active")
+        self.config_session_btn.config(state="active")
+        self.client_id_entry.config(state="normal")
 
     def next_session_iteration(self):
         # Check if there are records left
