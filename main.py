@@ -35,6 +35,8 @@ class UEDatasetCreator:
         # TK Variables
         self.client_id_var = tk.StringVar(value="0")
         self.client_id_var.trace('w', self.client_id_changed)
+        self.session_name_var = tk.StringVar(value="Session 1")
+        self.session_name_var.trace('w', self.session_name_changed)
 
         # icons definition
         self.conf_session_icon = tk.PhotoImage(file="assets/img/settings.png")
@@ -47,6 +49,8 @@ class UEDatasetCreator:
         self.c_id_label = tk.Label(self.top_frame, text="Client ID:")
         self.client_id_entry = tk.Entry(self.top_frame, textvariable=self.client_id_var, validate="key",
                                         validatecommand=(self.validate_positive_integer_entry_cmd, "%P"))
+        self.session_name_label = tk.Label(self.top_frame, text="Session name:")
+        self.session_name_entry = tk.Entry(self.top_frame, textvariable=self.session_name_var)
         self.start_session_btn = tk.Button(self.top_frame, text="Start Session", command=self.command_start_session)
         self.timer_label = tk.Label(self.top_frame, text="00:00")
         self.config_session_btn = tk.Button(self.top_frame, image=self.conf_session_icon, compound="center", width=25,
@@ -59,6 +63,8 @@ class UEDatasetCreator:
         self.top_frame.pack(side="top", fill="x", ipady=5)
         self.c_id_label.pack(side="left", padx=2)
         self.client_id_entry.pack(side="left", padx=3)
+        self.session_name_label.pack(side="left", padx=2)
+        self.session_name_entry.pack(side="left", padx=3)
         self.start_session_btn.pack(side="left", padx=10)
         self.timer_label.pack(side="left", padx=10)
         self.config_session_btn.pack(side="left", padx=10)
@@ -74,7 +80,7 @@ class UEDatasetCreator:
         self.state.recording_duration = recording_duration
         self.state.iteration_duration = iteration_duration
         self.state.client_id = 0
-        self.state.session_name = "Session 1"
+        self.state.session_name = self.session_name_var.get()
         self.state.waiting_time = 5  # Time to wait before to start an iteration
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
@@ -99,11 +105,11 @@ class UEDatasetCreator:
         self.start_session_btn.config(state="disabled")  # Disable button
         self.config_session_btn.config(state="disabled")  # Disable button
         self.client_id_entry.config(state="disabled")  # Disable entry
-        # TODO: disable menu items (New Session/Settings)
+        self.session_name_entry.config(state="disabled")  # Disable entry
         # Start recording threads
         self.recording_thread = RecordingThread()
         self.recording_thread.start()
-
+        # Continue if a stream is found
         with self.state.on_stream_status_change:
             while True:
                 self.state.on_stream_status_change.wait()
@@ -140,6 +146,7 @@ class UEDatasetCreator:
         self.start_session_btn.config(state="active")
         self.config_session_btn.config(state="active")
         self.client_id_entry.config(state="normal")
+        self.session_name_entry.config(state="normal")
 
     def next_session_iteration(self):
         # Check if there are records left
@@ -202,6 +209,10 @@ class UEDatasetCreator:
             self.state.client_id = int_value
         except ValueError:
             pass
+
+    def session_name_changed(self, *args):
+        value = self.session_name_entry.get()
+        self.state.session_name = value
 
     def main_loop(self):
         self.root.mainloop()
