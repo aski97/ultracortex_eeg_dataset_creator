@@ -9,6 +9,8 @@ from tkinter import messagebox
 class SettingsDialog(simpledialog.Dialog):
 
     def __init__(self, parent):
+        self.app_state = AppState()
+
         self.number_records_label = None
         self.number_records_entry = None
         self.focus_duration_label = None
@@ -16,8 +18,20 @@ class SettingsDialog(simpledialog.Dialog):
         self.recording_duration_scale = None
         self.recording_duration_label = None
         self.iteration_duration_label = None
-        self.app_state = AppState()
+
+        self.focus_duration_var = tk.IntVar(value=self.app_state.focus_duration)
+        self.recording_duration_var = tk.IntVar(value=self.app_state.recording_duration)
+        self.focus_duration_var.trace('w', self.iteration_duration_changed)
+        self.recording_duration_var.trace('w', self.iteration_duration_changed)
+
         super().__init__(parent, "Settings")
+
+    def iteration_duration_changed(self, *args):
+        record_duration = self.recording_duration_var.get()
+        focus_duration = self.focus_duration_var.get()
+        new_value = record_duration + focus_duration
+
+        self.iteration_duration_label.config(text=f"Iteration duration: {new_value}")
 
     def buttonbox(self):
         box = tk.Frame(self)
@@ -36,10 +50,9 @@ class SettingsDialog(simpledialog.Dialog):
         self.number_records_label = tk.Label(master, text="Number of records:")
         self.number_records_entry = tk.Entry(master)
         self.focus_duration_label = tk.Label(master, text="Focus duration (s)")
-        self.focus_duration_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
+        self.focus_duration_scale = tk.Scale(master, from_=1, to=60, variable=self.focus_duration_var, orient="horizontal")
         self.recording_duration_label = tk.Label(master, text="Recording duration (s)")
-        self.recording_duration_scale = tk.Scale(master, from_=1, to=60, orient="horizontal")
-        # TODO: UPDATE THE VALUE RUNTIME
+        self.recording_duration_scale = tk.Scale(master, from_=1, to=60, variable=self.recording_duration_var, orient="horizontal")
         self.iteration_duration_label = tk.Label(master, text=f"Iteration duration: {self.app_state.iteration_duration}")
 
         self.number_records_label.grid(row=0)
@@ -52,8 +65,6 @@ class SettingsDialog(simpledialog.Dialog):
 
         # Set values
         self.number_records_entry.insert(0, self.app_state.number_records)
-        self.focus_duration_scale.set(self.app_state.focus_duration)
-        self.recording_duration_scale.set(self.app_state.recording_duration)
 
         return self.number_records_entry  # Focus on the first entry
 
