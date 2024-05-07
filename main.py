@@ -90,7 +90,7 @@ class UEDatasetCreator:
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
         self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand, 2 = None
-        self.state.sampling_rate = 0.01  # 250Hz
+        self.state.sampling_rate = 0.01  # 100Hz
 
     # Commands
     def on_closing(self):
@@ -127,7 +127,6 @@ class UEDatasetCreator:
         #             print("Stream found")
         #             break
 
-        self.info_label.place(relx=0.5, rely=0.2, anchor="center")  # makes info label visible
         self.start_timer()  # Timer stars
         self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
         self.recorded_movements_label.pack(side="top", pady=5)
@@ -162,38 +161,34 @@ class UEDatasetCreator:
             self.end_recording_session()
 
     def session_iteration(self, time_passed):
-        if time_passed == (self.state.initial_duration + self.state.iteration_duration):
+        if time_passed == self.state.iteration_duration:
             # BREAK TIME, pause before start the next iteration (PHASE 4)
             # TODO: questo è il fine del break e non la fase 4, da inserire il trigger della fase di break
-            self.state.iteration_status = Status.WAITING_PHASE
+            self.state.iteration_status = Status.INITIAL_PHASE
             self.state.actual_iteration += 1
             # TODO: change background colour
             self.cross_label.config(bg="black")
             self.next_session_iteration()
         elif time_passed == 0:
-            print("WAITING PHASE (1)")
-            # WAITING TIME, fixation cross (PHASE 1)
+            print("INITIAL PHASE (1)")
+            # INITIAL PHASE, fixation cross (PHASE 1)
             # TODO: suono acustico per tot secondi (0.4s)
-            self.state.iteration_status = Status.WAITING_PHASE
+            self.state.iteration_status = Status.INITIAL_PHASE
             self.root.configure(bg="black")
             self.cross_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
-            # self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
-        elif time_passed < self.state.initial_duration:
-            pass
-            # self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
         elif time_passed == self.state.initial_duration:
             print("FOCUS PHASE (2)")
-            # FOCUS TIME, show the movement to focus on (PHASE 2)
+            # FOCUS PHASE, show the movement to focus on (PHASE 2)
             # TODO: freccia che indica il movimento (sinistra, destra, cerchio)
-            # TODO: durata 1.25s
             self.state.iteration_status = Status.FOCUS_PHASE
-            self.state.actual_selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand, 2 = None
+            self.state.actual_selected_hand = random.choice([0, 1, 2])  # 0 = Left hand, 1 = Right hand, 2 = None
             self.cross_label.config(bg="orange")
-            self.info_label.config(text=f"{'Left' if self.state.actual_selected_hand == 0 else 'Right'} hand")
+            self.info_label.config(text=f"{'<-' if self.state.actual_selected_hand == 0 else ('->' if self.state.actual_selected_hand == 1 else 'o')}")
+            self.info_label.place(relx=0.5, rely=0.2, anchor="center")  # makes info label visible
             self.root.configure(bg="orange")  # Change background
         elif time_passed == (self.state.initial_duration + (self.state.focus_duration - 0.75)):
             # starts recording phase (PHASE 3)
-            print("Start recording")
+            print("Start recording PHASE 3")
             self.state.iteration_status = Status.RECORDING_PHASE
         elif time_passed == (self.state.initial_duration + self.state.focus_duration):
             # end of focus phase, GUI changes
@@ -201,8 +196,8 @@ class UEDatasetCreator:
             self.cross_label.config(state="disabled")  # Disable cross
             self.root.configure(bg="green")  # Change background
 
-        time_passed += 1
-        self.root.after(1000, self.session_iteration, time_passed)
+        time_passed += 0.25
+        self.root.after(250, self.session_iteration, time_passed)
 
     def start_timer(self):
         if self.state.app_status == Status.SESSION_STARTED:

@@ -21,7 +21,6 @@ class SettingsDialog(simpledialog.Dialog):
         self.recording_duration_label = None
         self.break_duration_label = None
         self.break_duration_scale = None
-        self.iteration_duration_label = None
         self.stream_name_label = None
         self.stream_name_entry = None
         self.sampling_rate_label = None
@@ -32,21 +31,7 @@ class SettingsDialog(simpledialog.Dialog):
         self.recording_duration_var = tk.DoubleVar(value=self.app_state.recording_duration)
         self.break_duration_var = tk.DoubleVar(value=self.app_state.break_duration)
 
-        self.initial_duration_var.trace('w', self.iteration_duration_changed)
-        self.focus_duration_var.trace('w', self.iteration_duration_changed)
-        self.recording_duration_var.trace('w', self.iteration_duration_changed)
-        self.break_duration_var.trace('w', self.iteration_duration_changed)
-
         super().__init__(parent, "Settings")
-
-    def iteration_duration_changed(self, *args):
-        initial_duration = self.initial_duration_var.get()
-        focus_duration = self.focus_duration_var.get()
-        record_duration = self.recording_duration_var.get()
-        break_duration = self.break_duration_var.get()
-        new_value = initial_duration + focus_duration + record_duration + break_duration
-
-        self.iteration_duration_label.config(text=f"Iteration duration: {new_value}")
 
     def buttonbox(self):
         box = tk.Frame(self)
@@ -65,15 +50,14 @@ class SettingsDialog(simpledialog.Dialog):
         self.number_records_label = tk.Label(master, text="Number of records:")
         self.number_records_entry = tk.Entry(master)
         self.initial_duration_label = tk.Label(master, text="PHASE 1: Initial (s)")
-        self.initial_duration_scale = tk.Scale(master, from_=1.0, to=10.0, resolution=0.1, variable=self.initial_duration_var, orient="horizontal")
+        self.initial_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.25, digits=4, variable=self.initial_duration_var, orient="horizontal")
         self.focus_duration_label = tk.Label(master, text="PHASE 2: Focus (s)")
-        self.focus_duration_scale = tk.Scale(master, from_=1.0, to=10.0, resolution=0.1, variable=self.focus_duration_var, orient="horizontal")
+        self.focus_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.25, digits=4, variable=self.focus_duration_var, orient="horizontal")
         self.recording_duration_label = tk.Label(master, text="PHASE 3: Recording (s)")
-        self.recording_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.1, variable=self.recording_duration_var, orient="horizontal")
+        self.recording_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.25, digits=4, variable=self.recording_duration_var, orient="horizontal")
         self.break_duration_label = tk.Label(master, text="PHASE 4: Break (s)")
-        self.break_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.1, variable=self.break_duration_var,
+        self.break_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.25, digits=4, variable=self.break_duration_var,
                                                  orient="horizontal")
-        self.iteration_duration_label = tk.Label(master, text=f"Iteration duration: {self.app_state.iteration_duration}")
         self.sampling_rate_label = tk.Label(master, text="Sampling rate (s)")
         self.sampling_rate_entry = tk.Entry(master)
         self.stream_name_label = tk.Label(master, text="Stream name")
@@ -89,7 +73,6 @@ class SettingsDialog(simpledialog.Dialog):
         self.break_duration_label.grid(row=4, column=1, pady=2)
         self.recording_duration_scale.grid(row=5, column=0, pady=1)
         self.break_duration_scale.grid(row=5, column=1, pady=1)
-        self.iteration_duration_label.grid(row=6, pady=5)
         self.stream_name_label.grid(row=7, column=0, pady=1)
         self.sampling_rate_label.grid(row=7, column=1, pady=1)
         self.stream_name_entry.grid(row=8, column=0, pady=1)

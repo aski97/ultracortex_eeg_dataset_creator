@@ -36,7 +36,7 @@ class RecordingThread(threading.Thread):
                 record_data_ts.append(sample)
                 # Waiting time to simulate sampling rate
                 time.sleep(self.app_state.sampling_rate)
-            elif self.app_state.iteration_status == Status.WAITING_PHASE:
+            elif self.app_state.iteration_status == Status.INITIAL_PHASE:
                 if record_data_ts:
                     # Save data and empty the list
                     self.save_iteration(record_data_ts)
