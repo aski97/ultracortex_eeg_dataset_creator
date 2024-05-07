@@ -13,23 +13,38 @@ class SettingsDialog(simpledialog.Dialog):
 
         self.number_records_label = None
         self.number_records_entry = None
+        self.initial_duration_label = None
+        self.initial_duration_scale = None
         self.focus_duration_label = None
         self.focus_duration_scale = None
         self.recording_duration_scale = None
         self.recording_duration_label = None
+        self.break_duration_label = None
+        self.break_duration_scale = None
         self.iteration_duration_label = None
+        self.stream_name_label = None
+        self.stream_name_entry = None
+        self.sampling_rate_label = None
+        self.sampling_rate_entry = None
 
-        self.focus_duration_var = tk.IntVar(value=self.app_state.focus_duration)
-        self.recording_duration_var = tk.IntVar(value=self.app_state.recording_duration)
+        self.initial_duration_var = tk.DoubleVar(value=self.app_state.initial_duration)
+        self.focus_duration_var = tk.DoubleVar(value=self.app_state.focus_duration)
+        self.recording_duration_var = tk.DoubleVar(value=self.app_state.recording_duration)
+        self.break_duration_var = tk.DoubleVar(value=self.app_state.break_duration)
+
+        self.initial_duration_var.trace('w', self.iteration_duration_changed)
         self.focus_duration_var.trace('w', self.iteration_duration_changed)
         self.recording_duration_var.trace('w', self.iteration_duration_changed)
+        self.break_duration_var.trace('w', self.iteration_duration_changed)
 
         super().__init__(parent, "Settings")
 
     def iteration_duration_changed(self, *args):
-        record_duration = self.recording_duration_var.get()
+        initial_duration = self.initial_duration_var.get()
         focus_duration = self.focus_duration_var.get()
-        new_value = record_duration + focus_duration
+        record_duration = self.recording_duration_var.get()
+        break_duration = self.break_duration_var.get()
+        new_value = initial_duration + focus_duration + record_duration + break_duration
 
         self.iteration_duration_label.config(text=f"Iteration duration: {new_value}")
 
@@ -49,22 +64,41 @@ class SettingsDialog(simpledialog.Dialog):
     def body(self, master):
         self.number_records_label = tk.Label(master, text="Number of records:")
         self.number_records_entry = tk.Entry(master)
-        self.focus_duration_label = tk.Label(master, text="Focus duration (s)")
-        self.focus_duration_scale = tk.Scale(master, from_=1, to=60, variable=self.focus_duration_var, orient="horizontal")
-        self.recording_duration_label = tk.Label(master, text="Recording duration (s)")
-        self.recording_duration_scale = tk.Scale(master, from_=1, to=60, variable=self.recording_duration_var, orient="horizontal")
+        self.initial_duration_label = tk.Label(master, text="PHASE 1: Initial (s)")
+        self.initial_duration_scale = tk.Scale(master, from_=1.0, to=10.0, resolution=0.1, variable=self.initial_duration_var, orient="horizontal")
+        self.focus_duration_label = tk.Label(master, text="PHASE 2: Focus (s)")
+        self.focus_duration_scale = tk.Scale(master, from_=1.0, to=10.0, resolution=0.1, variable=self.focus_duration_var, orient="horizontal")
+        self.recording_duration_label = tk.Label(master, text="PHASE 3: Recording (s)")
+        self.recording_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.1, variable=self.recording_duration_var, orient="horizontal")
+        self.break_duration_label = tk.Label(master, text="PHASE 4: Break (s)")
+        self.break_duration_scale = tk.Scale(master, from_=1, to=10, resolution=0.1, variable=self.break_duration_var,
+                                                 orient="horizontal")
         self.iteration_duration_label = tk.Label(master, text=f"Iteration duration: {self.app_state.iteration_duration}")
+        self.sampling_rate_label = tk.Label(master, text="Sampling rate (s)")
+        self.sampling_rate_entry = tk.Entry(master)
+        self.stream_name_label = tk.Label(master, text="Stream name")
+        self.stream_name_entry = tk.Entry(master)
 
         self.number_records_label.grid(row=0)
         self.number_records_entry.grid(row=1, column=0)
-        self.focus_duration_label.grid(row=2, pady=2)
-        self.focus_duration_scale.grid(row=3, column=0, pady=1)
-        self.recording_duration_label.grid(row=4, pady=2)
+        self.initial_duration_label.grid(row=2, column=0, pady=2)
+        self.focus_duration_label.grid(row=2, column=1, pady=2)
+        self.initial_duration_scale.grid(row=3, column=0, pady=1)
+        self.focus_duration_scale.grid(row=3, column=1, pady=1)
+        self.recording_duration_label.grid(row=4, column=0, pady=2)
+        self.break_duration_label.grid(row=4, column=1, pady=2)
         self.recording_duration_scale.grid(row=5, column=0, pady=1)
+        self.break_duration_scale.grid(row=5, column=1, pady=1)
         self.iteration_duration_label.grid(row=6, pady=5)
+        self.stream_name_label.grid(row=7, column=0, pady=1)
+        self.sampling_rate_label.grid(row=7, column=1, pady=1)
+        self.stream_name_entry.grid(row=8, column=0, pady=1)
+        self.sampling_rate_entry.grid(row=8, column=1, pady=1)
 
         # Set values
         self.number_records_entry.insert(0, self.app_state.number_records)
+        self.stream_name_entry.insert(0, self.app_state.stream_name)
+        self.sampling_rate_entry.insert(0, self.app_state.sampling_rate)
 
         return self.number_records_entry  # Focus on the first entry
 
@@ -88,15 +122,24 @@ class SettingsDialog(simpledialog.Dialog):
     def apply(self):
         # Get values
         number_records = int(self.number_records_entry.get())
+        initial_duration = self.initial_duration_scale.get()
         focus_duration = self.focus_duration_scale.get()
         recording_duration = self.recording_duration_scale.get()
-        iteration_duration = focus_duration + recording_duration
+        break_duration = self.break_duration_scale.get()
+        iteration_duration = initial_duration + focus_duration + recording_duration + break_duration
+
+        stream_name = self.stream_name_entry.get()
 
         # Save on file
-        DataSystem().save_settings_data(number_records, focus_duration, recording_duration)
+        DataSystem().save_settings_data(number_records,initial_duration, focus_duration, recording_duration, break_duration, stream_name)
 
         # update local state
         self.app_state.number_records = number_records
+        self.app_state.initial_duration = initial_duration
         self.app_state.focus_duration = focus_duration
         self.app_state.recording_duration = recording_duration
+        self.app_state.break_duration = break_duration
         self.app_state.iteration_duration = iteration_duration
+
+        self.app_state.stream_name = stream_name
+        self.app_state.sampling_rate = self.sampling_rate_entry.get()

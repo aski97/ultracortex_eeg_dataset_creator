@@ -18,7 +18,7 @@ class RecordingThread(threading.Thread):
     def run(self):
         self.change_stream_status(StreamStatus.SEARCHING)
         # Searching the stream
-        streams = resolve_byprop('type', 'EEG', timeout=2)
+        streams = resolve_byprop('type', self.app_state.stream_name, timeout=2)
         if len(streams) > 0:
             self.change_stream_status(StreamStatus.FOUND)
         else:

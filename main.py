@@ -20,7 +20,7 @@ class UEDatasetCreator:
 
         root.geometry("600x600")
         root.title("Ultracortex EEG Dataset Creator")
-        root.configure(background="white")
+        root.configure(background="black")
         root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.root = root
@@ -56,7 +56,8 @@ class UEDatasetCreator:
         self.config_session_btn = tk.Button(self.top_frame, image=self.conf_session_icon, compound="center", width=25,
                                             height=25, command=self.command_open_settings)
 
-        self.info_label = tk.Label(self.root, text="Info")
+        self.cross_label = tk.Label(self.root, text="+", font=("Helvetica", 48), fg="white", bg="black")
+        self.info_label = tk.Label(self.root, text="+", font=("Helvetica", 48), fg="white", bg="black")
         self.recorded_movements_label = tk.Label(self.root, text="Records: 0/0")
 
         # Pack elements
@@ -68,23 +69,27 @@ class UEDatasetCreator:
         self.start_session_btn.pack(side="left", padx=10)
         self.timer_label.pack(side="left", padx=10)
         self.config_session_btn.pack(side="left", padx=10)
+        self.cross_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
 
         # App variables
-        number_records, focus_duration, recording_duration, iteration_duration = self.data_system.load_settings_data()
+        number_records, initial_duration, focus_duration, recording_duration, break_duration, iteration_duration, stream_name = self.data_system.load_settings_data()
         self.recording_thread = None
         self.state.app_status = Status.IDLE
         self.state.iteration_status = Status.IDLE
         self.state.stream_status = StreamStatus.IDLE
+        self.state.stream_name = stream_name
         self.state.number_records = number_records
-        self.state.focus_duration = focus_duration
-        self.state.recording_duration = recording_duration
+        self.state.initial_duration = 2  # PHASE 1 DURATION
+        self.state.focus_duration = focus_duration  # PHASE 2 DURATION
+        self.state.recording_duration = recording_duration  # PHASE 3 DURATION
+        self.state.break_duration = 2   # PHASE 4 DURATION
         self.state.iteration_duration = iteration_duration
         self.state.client_id = 0
         self.state.session_name = self.session_name_var.get()
-        self.state.waiting_time = 5  # Time to wait before to start an iteration
+
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
-        self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
+        self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand, 2 = None
         self.state.sampling_rate = 0.01  # 250Hz
 
     # Commands
@@ -95,7 +100,6 @@ class UEDatasetCreator:
 
     def command_start_session(self):
         # TODO: Change Start Button to Stop/Terminate Button
-
         # Variables changes
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
@@ -110,20 +114,20 @@ class UEDatasetCreator:
         self.recording_thread = RecordingThread()
         self.recording_thread.start()
         # Continue if a stream is found
-        with self.state.on_stream_status_change:
-            while True:
-                self.state.on_stream_status_change.wait()
-                if self.state.stream_status == StreamStatus.NOT_FOUND:
-                    messagebox.showerror("Stream not found", "No EEG Stream found, please make sure lsl streaming is enabled on OpenBCI GUI.")
-                    self.reset_session()
-                    return
-                elif self.state.stream_status == StreamStatus.SEARCHING:
-                    print("looking for an EEG stream...")
-                elif self.state.stream_status == StreamStatus.FOUND:
-                    print("Stream found")
-                    break
+        # with self.state.on_stream_status_change:
+        #     while True:
+        #         self.state.on_stream_status_change.wait()
+        #         if self.state.stream_status == StreamStatus.NOT_FOUND:
+        #             messagebox.showerror("Stream not found", "No EEG Stream found, please make sure lsl streaming is enabled on OpenBCI GUI.")
+        #             self.reset_session()
+        #             return
+        #         elif self.state.stream_status == StreamStatus.SEARCHING:
+        #             print("looking for an EEG stream...")
+        #         elif self.state.stream_status == StreamStatus.FOUND:
+        #             print("Stream found")
+        #             break
 
-        self.info_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
+        self.info_label.place(relx=0.5, rely=0.2, anchor="center")  # makes info label visible
         self.start_timer()  # Timer stars
         self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
         self.recorded_movements_label.pack(side="top", pady=5)
@@ -158,27 +162,43 @@ class UEDatasetCreator:
             self.end_recording_session()
 
     def session_iteration(self, time_passed):
-        if time_passed == (self.state.waiting_time + self.state.iteration_duration):
-            # end of iteration, go to the next one
+        if time_passed == (self.state.initial_duration + self.state.iteration_duration):
+            # BREAK TIME, pause before start the next iteration (PHASE 4)
+            # TODO: questo è il fine del break e non la fase 4, da inserire il trigger della fase di break
             self.state.iteration_status = Status.WAITING_PHASE
             self.state.actual_iteration += 1
+            # TODO: change background colour
+            self.cross_label.config(bg="black")
             self.next_session_iteration()
         elif time_passed == 0:
-            # trigger waiting time
+            print("WAITING PHASE (1)")
+            # WAITING TIME, fixation cross (PHASE 1)
+            # TODO: suono acustico per tot secondi (0.4s)
             self.state.iteration_status = Status.WAITING_PHASE
-            self.root.configure(bg="white")
-            self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
-        elif time_passed < self.state.waiting_time:
-            self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
-        elif time_passed == self.state.waiting_time:
-            # trigger focus time
+            self.root.configure(bg="black")
+            self.cross_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
+            # self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
+        elif time_passed < self.state.initial_duration:
+            pass
+            # self.info_label.config(text=f"Starting in {self.state.waiting_time - time_passed} s")
+        elif time_passed == self.state.initial_duration:
+            print("FOCUS PHASE (2)")
+            # FOCUS TIME, show the movement to focus on (PHASE 2)
+            # TODO: freccia che indica il movimento (sinistra, destra, cerchio)
+            # TODO: durata 1.25s
             self.state.iteration_status = Status.FOCUS_PHASE
-            self.state.actual_selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand
+            self.state.actual_selected_hand = random.choice([0, 1])  # 0 = Left hand, 1 = Right hand, 2 = None
+            self.cross_label.config(bg="orange")
             self.info_label.config(text=f"{'Left' if self.state.actual_selected_hand == 0 else 'Right'} hand")
             self.root.configure(bg="orange")  # Change background
-        elif time_passed == (self.state.waiting_time + self.state.focus_duration):
-            # trigger start recording
+        elif time_passed == (self.state.initial_duration + (self.state.focus_duration - 0.75)):
+            # starts recording phase (PHASE 3)
+            print("Start recording")
             self.state.iteration_status = Status.RECORDING_PHASE
+        elif time_passed == (self.state.initial_duration + self.state.focus_duration):
+            # end of focus phase, GUI changes
+            print("END FOCUS PHASE")
+            self.cross_label.config(state="disabled")  # Disable cross
             self.root.configure(bg="green")  # Change background
 
         time_passed += 1
@@ -198,7 +218,7 @@ class UEDatasetCreator:
 
     def end_recording_session(self):
         # UI Changes
-        self.root.configure(bg="white")
+        self.root.configure(bg="black")
         self.info_label.config(text=f"Session terminated, thank you!")
         self.state.app_status = Status.SESSION_ENDED
 
