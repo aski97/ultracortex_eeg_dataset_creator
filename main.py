@@ -2,6 +2,7 @@ import threading
 import tkinter as tk
 import random
 from tkinter import messagebox
+from PIL import Image, ImageTk
 
 from AppState import AppState
 from DataSystem import DataSystem
@@ -10,6 +11,12 @@ from Menubar import Menubar
 from RecordingThread import RecordingThread
 from SettingsDialog import SettingsDialog
 from singleton_decorator import singleton
+
+
+def resize_image(image_path, width, height):
+    image = Image.open(image_path)
+    resized_image = image.resize((width, height), Image.LANCZOS)
+    return ImageTk.PhotoImage(resized_image)
 
 
 @singleton
@@ -40,6 +47,17 @@ class UEDatasetCreator:
 
         # icons definition
         self.conf_session_icon = tk.PhotoImage(file="assets/img/settings.png")
+        self.left_arrow_icon = resize_image("assets/img/left_arrow.png", 100, 50)
+        self.right_arrow_icon = resize_image("assets/img/right_arrow.png", 100, 50)
+        self.none_arrow_icon = resize_image("assets/img/none_arrow.png", 50, 50)
+
+        # defining arrows in a dictionary
+        self.arrow_icons = {
+            0: self.left_arrow_icon,
+            1: self.right_arrow_icon,
+            2: self.none_arrow_icon
+        }
+
         self.conf_session_icon = self.conf_session_icon.subsample(18)
 
         # GUI elements
@@ -57,7 +75,7 @@ class UEDatasetCreator:
                                             height=25, command=self.command_open_settings)
 
         self.cross_label = tk.Label(self.root, text="+", font=("Helvetica", 48), fg="white", bg="black")
-        self.info_label = tk.Label(self.root, text="+", font=("Helvetica", 48), fg="white", bg="black")
+        self.arrow_label = tk.Label(self.root, text="+", font=("Helvetica", 48), fg="white", bg="black")
         self.recorded_movements_label = tk.Label(self.root, text="Records: 0/0")
 
         # Pack elements
@@ -82,7 +100,7 @@ class UEDatasetCreator:
         self.state.initial_duration = 2  # PHASE 1 DURATION
         self.state.focus_duration = focus_duration  # PHASE 2 DURATION
         self.state.recording_duration = recording_duration  # PHASE 3 DURATION
-        self.state.break_duration = 2   # PHASE 4 DURATION
+        self.state.break_duration = 2  # PHASE 4 DURATION
         self.state.iteration_duration = iteration_duration
         self.state.client_id = 0
         self.state.session_name = self.session_name_var.get()
@@ -114,18 +132,18 @@ class UEDatasetCreator:
         self.recording_thread = RecordingThread()
         self.recording_thread.start()
         # Continue if a stream is found
-        # with self.state.on_stream_status_change:
-        #     while True:
-        #         self.state.on_stream_status_change.wait()
-        #         if self.state.stream_status == StreamStatus.NOT_FOUND:
-        #             messagebox.showerror("Stream not found", "No EEG Stream found, please make sure lsl streaming is enabled on OpenBCI GUI.")
-        #             self.reset_session()
-        #             return
-        #         elif self.state.stream_status == StreamStatus.SEARCHING:
-        #             print("looking for an EEG stream...")
-        #         elif self.state.stream_status == StreamStatus.FOUND:
-        #             print("Stream found")
-        #             break
+        with self.state.on_stream_status_change:
+            while True:
+                self.state.on_stream_status_change.wait()
+                if self.state.stream_status == StreamStatus.NOT_FOUND:
+                    messagebox.showerror("Stream not found", "No EEG Stream found, please make sure lsl streaming is enabled on OpenBCI GUI.")
+                    self.reset_session()
+                    return
+                elif self.state.stream_status == StreamStatus.SEARCHING:
+                    print("looking for an EEG stream...")
+                elif self.state.stream_status == StreamStatus.FOUND:
+                    print("Stream found")
+                    break
 
         self.start_timer()  # Timer stars
         self.recorded_movements_label.config(text=f"Records: {self.state.actual_iteration}/{self.state.number_records}")
@@ -162,11 +180,11 @@ class UEDatasetCreator:
 
     def session_iteration(self, time_passed):
         if time_passed == self.state.iteration_duration:
-            # BREAK TIME, pause before start the next iteration (PHASE 4)
-            # TODO: questo è il fine del break e non la fase 4, da inserire il trigger della fase di break
+            # Go to next iteration
+            print("END ITERATION")
             self.state.iteration_status = Status.INITIAL_PHASE
             self.state.actual_iteration += 1
-            # TODO: change background colour
+
             self.cross_label.config(bg="black")
             self.next_session_iteration()
         elif time_passed == 0:
@@ -179,22 +197,30 @@ class UEDatasetCreator:
         elif time_passed == self.state.initial_duration:
             print("FOCUS PHASE (2)")
             # FOCUS PHASE, show the movement to focus on (PHASE 2)
-            # TODO: freccia che indica il movimento (sinistra, destra, cerchio)
             self.state.iteration_status = Status.FOCUS_PHASE
             self.state.actual_selected_hand = random.choice([0, 1, 2])  # 0 = Left hand, 1 = Right hand, 2 = None
             self.cross_label.config(bg="orange")
-            self.info_label.config(text=f"{'<-' if self.state.actual_selected_hand == 0 else ('->' if self.state.actual_selected_hand == 1 else 'o')}")
-            self.info_label.place(relx=0.5, rely=0.2, anchor="center")  # makes info label visible
+
+            # select arrow
+            img = self.arrow_icons.get(self.state.actual_selected_hand, self.left_arrow_icon)
+
+            self.arrow_label.config(image=img)
+            self.arrow_label.place(relx=0.5, rely=0.2, anchor="center")  # makes info label visible
             self.root.configure(bg="orange")  # Change background
         elif time_passed == (self.state.initial_duration + (self.state.focus_duration - 0.75)):
             # starts recording phase (PHASE 3)
-            print("Start recording PHASE 3")
+            print("Start recording PHASE (3)")
             self.state.iteration_status = Status.RECORDING_PHASE
         elif time_passed == (self.state.initial_duration + self.state.focus_duration):
             # end of focus phase, GUI changes
             print("END FOCUS PHASE")
-            self.cross_label.config(state="disabled")  # Disable cross
+            self.arrow_label.place_forget()  # Arrow disappeared
+            self.cross_label.config(bg="green")
             self.root.configure(bg="green")  # Change background
+        elif time_passed == (self.state.initial_duration + self.state.focus_duration + self.state.recording_duration):
+            print("BREAK PHASE (4)")
+            self.cross_label.place_forget()  # Cross disappeared
+            self.root.configure(bg="black")
 
         time_passed += 0.25
         self.root.after(250, self.session_iteration, time_passed)
@@ -214,8 +240,9 @@ class UEDatasetCreator:
     def end_recording_session(self):
         # UI Changes
         self.root.configure(bg="black")
-        self.info_label.config(text=f"Session terminated, thank you!")
+        self.recorded_movements_label.config(text=f"Session terminated")
         self.state.app_status = Status.SESSION_ENDED
+        self.reset_ui_session()
 
     def client_id_changed(self, *args):
         value = self.client_id_var.get()
