@@ -1,9 +1,8 @@
-import threading
 import tkinter as tk
 import random
 from tkinter import messagebox
 from PIL import Image, ImageTk
-
+import winsound
 from AppState import AppState
 from DataSystem import DataSystem
 from LifecycleStatus import Status, StreamStatus
@@ -17,6 +16,15 @@ def resize_image(image_path, width, height):
     image = Image.open(image_path)
     resized_image = image.resize((width, height), Image.LANCZOS)
     return ImageTk.PhotoImage(resized_image)
+
+
+def beep(duration=400):
+    """
+    Play a beep sound for a specified duration.
+    :param duration: duration of the beep in milliseconds
+    """
+    frequency = 1000  # beep frequency in Hertz
+    winsound.Beep(frequency, duration)
 
 
 @singleton
@@ -117,7 +125,6 @@ class UEDatasetCreator:
         self.root.destroy()
 
     def command_start_session(self):
-        # TODO: Change Start Button to Stop/Terminate Button
         # Variables changes
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
@@ -190,7 +197,7 @@ class UEDatasetCreator:
         elif time_passed == 0:
             print("INITIAL PHASE (1)")
             # INITIAL PHASE, fixation cross (PHASE 1)
-            # TODO: suono acustico per tot secondi (0.4s)
+            beep(400)
             self.state.iteration_status = Status.INITIAL_PHASE
             self.root.configure(bg="black")
             self.cross_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
