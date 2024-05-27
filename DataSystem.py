@@ -31,24 +31,26 @@ class DataSystem:
 
         if npy_settings is None:
             # Create default settings
-            settings = self.create_settings_dict(5, 3, 6)
+            settings = self.create_settings_dict(5, 2, 1.3, 3, 1.5, "EEG")
 
-            number_records = int(settings['number_records'])
-            focus_duration = int(settings['focus_duration'])
-            recording_duration = int(settings['recording_duration'])
-            iteration_duration = focus_duration + recording_duration
-
-            return number_records, focus_duration, recording_duration, iteration_duration
+            return self.extrapolate_settings_from_dic(settings)
 
         # Convert npy array to dictionary
         setting_elements = dict(npy_settings.tolist())
 
-        number_records = int(setting_elements['number_records'])
-        focus_duration = int(setting_elements['focus_duration'])
-        recording_duration = int(setting_elements['recording_duration'])
-        iteration_duration = focus_duration + recording_duration
+        return self.extrapolate_settings_from_dic(setting_elements)
 
-        return number_records, focus_duration, recording_duration, iteration_duration
+    @staticmethod
+    def extrapolate_settings_from_dic(settings: dict) -> tuple:
+        number_records = int(settings['number_records'])
+        initial_duration = float(settings['initial_duration'])
+        focus_duration = float(settings['focus_duration'])
+        recording_duration = float(settings['recording_duration'])
+        break_duration = float(settings['break_duration'])
+        stream_name = settings['stream_name']
+        iteration_duration = initial_duration + focus_duration + recording_duration + break_duration
+
+        return number_records, initial_duration, focus_duration, recording_duration, break_duration, iteration_duration, stream_name
 
     def save_timeseries_record(self, client_id, timeseries, record_time, hand, session_name):
         # Compute sampling rate
@@ -63,9 +65,9 @@ class DataSystem:
         self.save(numpy_data_ts, path)
         print("Data Saved...")
 
-    def save_settings_data(self, number_records, focus_duration, recording_duration) -> bool:
+    def save_settings_data(self, number_records: int, initial_duration: float, focus_duration: float, recording_duration: float, break_duration: float, stream_name: str) -> bool:
         # Convert to npy array
-        dict_settings = self.create_settings_dict(number_records, focus_duration, recording_duration)
+        dict_settings = self.create_settings_dict(number_records,initial_duration, focus_duration, recording_duration, break_duration, stream_name)
         npy_settings = np.array(list(dict_settings.items()), dtype=object)
         # Save data
         self.save(npy_settings, self.build_data_path(self._settings_filename))
@@ -73,9 +75,14 @@ class DataSystem:
         return True
 
     @staticmethod
-    def create_settings_dict(number_records: int, focus_duration: int, recording_duration: int):
-        return {'number_records': number_records, 'focus_duration': focus_duration,
-                'recording_duration': recording_duration}
+    def create_settings_dict(number_records: int, initial_duration: float, focus_duration: float,
+                             recording_duration: float, break_duration: float, stream_name: str) -> dict:
+        return {'number_records': number_records,
+                'initial_duration': initial_duration,
+                'focus_duration': focus_duration,
+                'recording_duration': recording_duration,
+                'break_duration': break_duration,
+                'stream_name': stream_name}
 
     def build_data_path(self, filename: str) -> str:
         return self._path + filename

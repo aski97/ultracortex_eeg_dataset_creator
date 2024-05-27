@@ -1,3 +1,5 @@
+import threading
+
 from singleton_decorator import singleton
 
 
@@ -6,18 +8,22 @@ class AppState:
 
     def __init__(self):
         self._number_records = None
-        self._focus_duration = None  # Duration of the orange screen
-        self._recording_duration = None  # Duration of the green screen
-        self._iteration_duration = None  # Duration of the iteration (Focus + Record phase)
+        self._initial_duration = None  # Duration of phase 1
+        self._focus_duration = None  # Duration of phase 2
+        self._recording_duration = None  # Duration of the phase 3
+        self._break_duration = None  # Duration of the phase 4
+        self._iteration_duration = None  # Duration of the iteration (PHASE 1 + PHASE 2 + PHASE 3 + PHASE 4)
         self._iteration_status = None
         self._app_status = None
         self._client_id = None
         self._session_name = None
-        self._waiting_time = 5
         self._actual_iteration = 0
         self._session_running_time = 0
         self._actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
         self._sampling_rate = 0.004  # 250Hz
+        self._stream_name = None
+        self._stream_status = None
+        self._on_stream_status_change = threading.Condition()
 
     @property
     def client_id(self):
@@ -36,14 +42,6 @@ class AppState:
         self._session_name = value
 
     @property
-    def waiting_time(self):
-        return self._waiting_time
-
-    @waiting_time.setter
-    def waiting_time(self, value):
-        self._waiting_time = value
-
-    @property
     def number_records(self):
         """ Total number of records (iterations) to record"""
         return self._number_records
@@ -51,6 +49,18 @@ class AppState:
     @number_records.setter
     def number_records(self, value):
         self._number_records = value
+
+    @property
+    def initial_duration(self):
+        """
+        Duration of the initial phase.
+        :return:
+        """
+        return self._initial_duration
+
+    @initial_duration.setter
+    def initial_duration(self, value):
+        self._initial_duration = value
 
     @property
     def focus_duration(self):
@@ -76,6 +86,18 @@ class AppState:
     @recording_duration.setter
     def recording_duration(self, value):
         self._recording_duration = value
+
+    @property
+    def break_duration(self):
+        """
+        Duration of the break phase, after the recording.
+        :return:
+        """
+        return self._break_duration
+
+    @break_duration.setter
+    def break_duration(self, value):
+        self._break_duration = value
 
     @property
     def iteration_duration(self):
@@ -143,3 +165,25 @@ class AppState:
     @sampling_rate.setter
     def sampling_rate(self, value):
         self._sampling_rate = value
+
+    @property
+    def stream_name(self):
+        return self._stream_name
+
+    @stream_name.setter
+    def stream_name(self, value):
+        self._stream_name = value
+
+    @property
+    def stream_status(self):
+        return self._stream_status
+
+    @stream_status.setter
+    def stream_status(self, value):
+        self._stream_status = value
+
+    @property
+    def on_stream_status_change(self):
+        return self._on_stream_status_change
+
+

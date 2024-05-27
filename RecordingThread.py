@@ -2,8 +2,8 @@ import threading
 import time
 from AppState import AppState
 from DataSystem import DataSystem
-from LifecycleStatus import Status
-from pylsl import StreamInlet, resolve_stream
+from LifecycleStatus import Status, StreamStatus
+from pylsl import StreamInlet, resolve_stream, resolve_byprop
 
 
 class RecordingThread(threading.Thread):
@@ -16,13 +16,15 @@ class RecordingThread(threading.Thread):
         self._stop_event = threading.Event()
 
     def run(self):
+        self.change_stream_status(StreamStatus.SEARCHING)
         # Searching the stream
-        print("looking for an EEG stream...")
-        streams = resolve_stream('type', 'EEG')
-        if len(streams) > 1:
-            print('Number of EEG streams is > 0, picking the first one.')
+        streams = resolve_byprop('type', self.app_state.stream_name, timeout=2)
+        if len(streams) > 0:
+            self.change_stream_status(StreamStatus.FOUND)
         else:
-            print(f"Stream found")
+            self.change_stream_status(StreamStatus.NOT_FOUND)
+            return
+
         # Creating a Streaminlet
         inlet = StreamInlet(streams[0])
         info = inlet.info()
@@ -34,7 +36,7 @@ class RecordingThread(threading.Thread):
                 record_data_ts.append(sample)
                 # Waiting time to simulate sampling rate
                 time.sleep(self.app_state.sampling_rate)
-            elif self.app_state.iteration_status == Status.WAITING_PHASE:
+            elif self.app_state.iteration_status == Status.INITIAL_PHASE:
                 if record_data_ts:
                     # Save data and empty the list
                     self.save_iteration(record_data_ts)
@@ -51,4 +53,9 @@ class RecordingThread(threading.Thread):
                                                 self.app_state.recording_duration,
                                                 self.app_state.actual_selected_hand,
                                                 self.app_state.session_name)
+
+    def change_stream_status(self, stream_status):
+        with self.app_state.on_stream_status_change:
+            self.app_state.stream_status = stream_status
+            self.app_state.on_stream_status_change.notify_all()
 
