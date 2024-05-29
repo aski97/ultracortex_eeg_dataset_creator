@@ -83,6 +83,8 @@ class SettingsDialog(simpledialog.Dialog):
         self.stream_name_entry.insert(0, self.app_state.stream_name)
         self.sampling_rate_entry.insert(0, self.app_state.sampling_rate)
 
+        self.sampling_rate_entry.config(state="disabled")
+
         return self.number_records_entry  # Focus on the first entry
 
     def validate(self):
@@ -125,4 +127,4 @@ class SettingsDialog(simpledialog.Dialog):
         self.app_state.iteration_duration = iteration_duration
 
         self.app_state.stream_name = stream_name
-        self.app_state.sampling_rate = self.sampling_rate_entry.get()
+        self.app_state.sampling_rate = float(self.sampling_rate_entry.get())

@@ -33,7 +33,7 @@ class UEDatasetCreator:
     def __init__(self):
         root = tk.Tk()
 
-        root.geometry("600x600")
+        root.geometry("780x600")
         root.title("Ultracortex EEG Dataset Creator")
         root.configure(background="black")
         root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -50,8 +50,10 @@ class UEDatasetCreator:
         # TK Variables
         self.client_id_var = tk.StringVar(value="0")
         self.client_id_var.trace('w', self.client_id_changed)
-        self.session_name_var = tk.StringVar(value="Session 1")
-        self.session_name_var.trace('w', self.session_name_changed)
+        self.session_number_var = tk.IntVar(value=1)
+        self.session_number_var.trace('w', self.session_number_changed)
+        self.run_number_var = tk.IntVar(value=1)
+        self.run_number_var.trace('w', self.run_number_changed)
 
         # icons definition
         self.conf_session_icon = tk.PhotoImage(file="assets/img/settings.png")
@@ -75,8 +77,10 @@ class UEDatasetCreator:
         self.c_id_label = tk.Label(self.top_frame, text="Client ID:")
         self.client_id_entry = tk.Entry(self.top_frame, textvariable=self.client_id_var, validate="key",
                                         validatecommand=(self.validate_positive_integer_entry_cmd, "%P"))
-        self.session_name_label = tk.Label(self.top_frame, text="Session name:")
-        self.session_name_entry = tk.Entry(self.top_frame, textvariable=self.session_name_var)
+        self.session_number_label = tk.Label(self.top_frame, text="Session:")
+        self.session_number_entry = tk.Entry(self.top_frame, textvariable=self.session_number_var)
+        self.run_number_label = tk.Label(self.top_frame, text="Run:")
+        self.run_number_entry = tk.Entry(self.top_frame, textvariable=self.run_number_var)
         self.start_session_btn = tk.Button(self.top_frame, text="Start Session", command=self.command_start_session)
         self.timer_label = tk.Label(self.top_frame, text="00:00")
         self.config_session_btn = tk.Button(self.top_frame, image=self.conf_session_icon, compound="center", width=25,
@@ -90,8 +94,10 @@ class UEDatasetCreator:
         self.top_frame.pack(side="top", fill="x", ipady=5)
         self.c_id_label.pack(side="left", padx=2)
         self.client_id_entry.pack(side="left", padx=3)
-        self.session_name_label.pack(side="left", padx=2)
-        self.session_name_entry.pack(side="left", padx=3)
+        self.session_number_label.pack(side="left", padx=2)
+        self.session_number_entry.pack(side="left", padx=3)
+        self.run_number_label.pack(side="left", padx=2)
+        self.run_number_entry.pack(side="left", padx=3)
         self.start_session_btn.pack(side="left", padx=10)
         self.timer_label.pack(side="left", padx=10)
         self.config_session_btn.pack(side="left", padx=10)
@@ -111,12 +117,13 @@ class UEDatasetCreator:
         self.state.break_duration = 2  # PHASE 4 DURATION
         self.state.iteration_duration = iteration_duration
         self.state.client_id = 0
-        self.state.session_name = self.session_name_var.get()
+        self.state.session_number = self.session_number_var.get()
+        self.state.run_number = self.run_number_var.get()
 
         self.state.actual_iteration = 0
         self.state.session_running_time = 0
         self.state.actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand, 2 = None
-        self.state.sampling_rate = 0.01  # 100Hz
+        self.state.sampling_rate = 0.004  # 250Hz
 
     # Commands
     def on_closing(self):
@@ -134,7 +141,8 @@ class UEDatasetCreator:
         self.start_session_btn.config(state="disabled")  # Disable button
         self.config_session_btn.config(state="disabled")  # Disable button
         self.client_id_entry.config(state="disabled")  # Disable entry
-        self.session_name_entry.config(state="disabled")  # Disable entry
+        self.session_number_entry.config(state="disabled")  # Disable entry
+        self.run_number_entry.config(state="disabled")  # Disable entry
         # Start recording threads
         self.recording_thread = RecordingThread()
         self.recording_thread.start()
@@ -174,7 +182,8 @@ class UEDatasetCreator:
         self.start_session_btn.config(state="active")
         self.config_session_btn.config(state="active")
         self.client_id_entry.config(state="normal")
-        self.session_name_entry.config(state="normal")
+        self.session_number_entry.config(state="normal")
+        self.run_number_entry.config(state="normal")
 
     def next_session_iteration(self):
         # Check if there are records left
@@ -226,6 +235,7 @@ class UEDatasetCreator:
             self.root.configure(bg="green")  # Change background
         elif time_passed == (self.state.initial_duration + self.state.focus_duration + self.state.recording_duration):
             print("BREAK PHASE (4)")
+            self.state.iteration_status = Status.BREAK_PHASE
             self.cross_label.place_forget()  # Cross disappeared
             self.root.configure(bg="black")
 
@@ -249,6 +259,8 @@ class UEDatasetCreator:
         self.root.configure(bg="black")
         self.recorded_movements_label.config(text=f"Session terminated")
         self.state.app_status = Status.SESSION_ENDED
+        self.state.run_number += 1
+        self.run_number_var.set(int(self.run_number_var.get()) + 1)
         self.reset_ui_session()
 
     def client_id_changed(self, *args):
@@ -259,9 +271,13 @@ class UEDatasetCreator:
         except ValueError:
             pass
 
-    def session_name_changed(self, *args):
-        value = self.session_name_entry.get()
-        self.state.session_name = value
+    def session_number_changed(self, *args):
+        value = self.session_number_entry.get()
+        self.state.session_number = value
+
+    def run_number_changed(self, *args):
+        value = int(self.run_number_entry.get())
+        self.state.run_number = value
 
     def main_loop(self):
         self.root.mainloop()

@@ -16,7 +16,8 @@ class AppState:
         self._iteration_status = None
         self._app_status = None
         self._client_id = None
-        self._session_name = None
+        self._session_number = None
+        self._run_number = None
         self._actual_iteration = 0
         self._session_running_time = 0
         self._actual_selected_hand = 0  # 0 = Left hand, 1 = Right hand
@@ -34,12 +35,20 @@ class AppState:
         self._client_id = value
 
     @property
-    def session_name(self):
-        return self._session_name
+    def session_number(self):
+        return self._session_number
 
-    @session_name.setter
-    def session_name(self, value):
-        self._session_name = value
+    @session_number.setter
+    def session_number(self, value):
+        self._session_number = value
+
+    @property
+    def run_number(self):
+        return self._run_number
+
+    @run_number.setter
+    def run_number(self, value):
+        self._run_number = value
 
     @property
     def number_records(self):

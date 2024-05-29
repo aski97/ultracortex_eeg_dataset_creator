@@ -52,17 +52,42 @@ class DataSystem:
 
         return number_records, initial_duration, focus_duration, recording_duration, break_duration, iteration_duration, stream_name
 
-    def save_timeseries_record(self, client_id, timeseries, record_time, hand, session_name):
+    def save_timeseries_record(self, client_id, timeseries, record_time, hand, session_number, run_number):
+        import mne
         # Compute sampling rate
         sr = int(len(timeseries) / record_time)
+
+        if sr < 250:
+            # TODO: make it variable
+            print("Sampling frequency < 250 Hz. EEG rejected.")
+            return
+
         # store data into numpy array
         numpy_data_ts = np.array(timeseries)
 
-        directory = self.build_data_path(f"recordings/{client_id}/{session_name}/{hand}/")
-        filename = f"TS_{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{sr}Hz"
+        # Creazione dell'info degli EEG
+        info = mne.create_info(ch_names=[f'EEG {i + 1}' for i in range(numpy_data_ts.shape[1])], sfreq=sr,
+                               ch_types='eeg')
+
+        # Creation of RawArray
+        raw = mne.io.RawArray(numpy_data_ts.T, info)
+
+        # Aggiunta di metadati personalizzati
+        raw.info['subject_info'] = {'id': client_id}
+        raw.info['description'] = f"duration:{record_time}, hand:{hand}, session:{session_number}, run:{run_number}"
+
+        directory = self.build_data_path(f"recordings/{client_id}/{session_number}/{hand}/")
+        filename = f"ts_run_{run_number}_{datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}_{sr}Hz_raw.fif"
 
         path = directory + filename
-        self.save(numpy_data_ts, path)
+
+        dirs = os.path.dirname(path)
+
+        if not os.path.exists(dirs):
+            os.makedirs(dirs)
+
+        raw.save(path)
+
         print("Data Saved...")
 
     def save_settings_data(self, number_records: int, initial_duration: float, focus_duration: float, recording_duration: float, break_duration: float, stream_name: str) -> bool:

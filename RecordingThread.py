@@ -28,15 +28,15 @@ class RecordingThread(threading.Thread):
         # Creating a Streaminlet
         inlet = StreamInlet(streams[0])
         info = inlet.info()
-        # print(info.nominal_srate())
+        print(info.nominal_srate())
         record_data_ts = []
         while True:
             if self.app_state.iteration_status == Status.RECORDING_PHASE:
                 sample, timestamps = inlet.pull_sample()
                 record_data_ts.append(sample)
                 # Waiting time to simulate sampling rate
-                time.sleep(self.app_state.sampling_rate)
-            elif self.app_state.iteration_status == Status.INITIAL_PHASE:
+                # time.sleep(self.app_state.sampling_rate)
+            elif self.app_state.iteration_status == Status.BREAK_PHASE:
                 if record_data_ts:
                     # Save data and empty the list
                     self.save_iteration(record_data_ts)
@@ -52,7 +52,8 @@ class RecordingThread(threading.Thread):
                                                 samples,
                                                 self.app_state.recording_duration,
                                                 self.app_state.actual_selected_hand,
-                                                self.app_state.session_name)
+                                                self.app_state.session_number,
+                                                self.app_state.run_number)
 
     def change_stream_status(self, stream_status):
         with self.app_state.on_stream_status_change:
