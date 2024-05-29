@@ -30,7 +30,7 @@ class Menubar:
         messagebox.showinfo(box_title, box_message)
 
     def open_recorded_track(self):
-        filetypes = [('numpy files', '*.npy')]
+        filetypes = [('eeg files', '*.fif')]
 
         filename = fd.askopenfilename(
             title='Open a Recorded track',

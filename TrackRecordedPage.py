@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
-from DataSystem import DataSystem
+import mne
 
 
 class ScrollablePlotFrame(tk.Frame):
@@ -32,7 +32,9 @@ class TrackRecordedPage:
         self.window.title(f"Track {filename}")
         self.window.geometry("1024x920")
 
-        self.data = DataSystem().load(filename)
+        raw = mne.io.read_raw_fif(filename, preload=True)
+
+        self.data = raw.get_data().T
 
         if self.data is None:
             return
@@ -40,6 +42,9 @@ class TrackRecordedPage:
         if len(self.data.shape) != 2:
             print("Numpy file must be 2D.")
             return
+
+        # timestamps
+        self.times = raw.times
 
         self.channels = self.data.shape[1]
 
@@ -98,7 +103,7 @@ class TrackRecordedPage:
         fig = Figure(figsize=(10, 1))
 
         ax = fig.add_subplot(111)
-        ax.plot(self.data[:, channel])
+        ax.plot(self.times, self.data[:, channel])
         ax.set_xlabel("time [s]")
         ax.set_ylabel("Signal")
         ax.set_title(f'Channel {channel}')
@@ -118,9 +123,3 @@ class TrackRecordedPage:
         toolbar.update()
 
         return container
-        # canvas_widget.pack(fill=tk.BOTH, expand=True, pady=[0, 30])
-        # canvas_widget.bind('<Configure>', lambda event, canvas_widget : self.frame_width(event, canvas_widget))
-
-    # def frame_width(self, event, canvas_widget):
-    #     canvas_width = event.width
-    #     canvas_widget.itemconfig(self.scrollable_frame, width=canvas_width)
