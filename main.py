@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 import random
 from tkinter import messagebox
@@ -206,7 +207,9 @@ class UEDatasetCreator:
         elif time_passed == 0:
             print("INITIAL PHASE (1)")
             # INITIAL PHASE, fixation cross (PHASE 1)
-            beep(400)
+            beep_thread = threading.Thread(target=beep, args=(400,))
+            beep_thread.start()
+
             self.state.iteration_status = Status.INITIAL_PHASE
             self.root.configure(bg="black")
             self.cross_label.place(relx=0.5, rely=0.5, anchor="center")  # makes info label visible
